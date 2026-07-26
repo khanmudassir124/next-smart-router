@@ -1,6 +1,6 @@
 {
   "name": "next-smart-router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Filesystem-style routing helpers for the Next.js App Router: relative navigation, auto-generated route manifests, typed params, breadcrumbs and safe back.",
   "type": "module",
   "license": "MIT",
