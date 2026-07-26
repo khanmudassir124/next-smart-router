@@ -1,0 +1,88 @@
+{
+  "name": "next-smart-router",
+  "version": "0.1.0",
+  "description": "Filesystem-style routing helpers for the Next.js App Router: relative navigation, auto-generated route manifests, typed params, breadcrumbs and safe back.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "next",
+    "nextjs",
+    "app-router",
+    "router",
+    "routing",
+    "breadcrumbs",
+    "params",
+    "navigation",
+    "react"
+  ],
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "next-smart-router": "./dist/cli/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "require": "./dist/react.cjs"
+    },
+    "./cli": {
+      "types": "./dist/cli/generate-routes.d.ts",
+      "import": "./dist/cli/generate-routes.js",
+      "require": "./dist/cli/generate-routes.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup && node scripts/add-use-client.mjs",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "next": ">=13.0.0",
+    "react": ">=16.8.0"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.31",
+    "next": "^14.2.35",
+    "react": "^18.3.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khanmudassir124/next-smart-router.git"
+  },
+  "homepage": "https://github.com/khanmudassir124/next-smart-router#readme",
+  "bugs": {
+    "url": "https://github.com/khanmudassir124/next-smart-router/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
