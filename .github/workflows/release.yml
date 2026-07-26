@@ -1,0 +1,64 @@
+name: Release
+
+# On every push to main: build, test, bump the patch version, tag it, publish
+# to npm, and push the bump commit + tag back to the repo.
+on:
+  push:
+    branches: [main]
+
+# contents:write lets the workflow push the version-bump commit + tag back.
+# id-token:write lets `npm publish --provenance` sign a build-provenance
+# attestation (supply-chain transparency). Drop the id-token line and the
+# `--provenance` flag below if you don't want provenance.
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Skip the run that the workflow's own version-bump commit creates.
+    # (Pushes made with GITHUB_TOKEN don't re-trigger workflows, but the
+    # [skip ci] guard also covers manual pushes of release commits.)
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump patch version
+        run: npm version patch -m "chore(release): v%s [skip ci]"
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push commit and tag
+        run: git push --follow-tags
