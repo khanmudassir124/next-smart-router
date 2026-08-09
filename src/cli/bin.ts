@@ -1,23 +1,85 @@
 #!/usr/bin/env node
 import path from "node:path";
+
 import { generateRoutes } from "./generate-routes";
+import { watchRoutes } from "./watch";
 
 interface ParsedArgs {
   appDir?: string;
   out?: string;
+  pageExtensions?: string[];
+  ignore?: string[];
+  watch?: boolean;
+  check?: boolean;
+  noTypes?: boolean;
+  noMeta?: boolean;
+  silent?: boolean;
   help?: boolean;
+  version?: boolean;
+  /** Non-flag tokens, in order. The first is the command. */
+  positional: string[];
 }
 
 function parse(argv: string[]): ParsedArgs {
-  const args: ParsedArgs = {};
+  const args: ParsedArgs = { positional: [] };
+
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    if (arg === "-h" || arg === "--help") args.help = true;
-    else if (arg === "--app-dir") args.appDir = argv[++i];
-    else if (arg === "--out" || arg === "-o") args.out = argv[++i];
-    else if (arg.startsWith("--app-dir=")) args.appDir = arg.split("=")[1];
-    else if (arg.startsWith("--out=")) args.out = arg.split("=")[1];
+
+    if (!arg.startsWith("-")) {
+      args.positional.push(arg);
+      continue;
+    }
+
+    const [flag, inline] =
+      arg.startsWith("--") && arg.includes("=")
+        ? [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)]
+        : [arg, undefined];
+
+    // Consuming the value here is what keeps it out of `positional`.
+    const next = () => inline ?? argv[++i];
+
+    switch (flag) {
+      case "-h":
+      case "--help":
+        args.help = true;
+        break;
+      case "-v":
+      case "--version":
+        args.version = true;
+        break;
+      case "--app-dir":
+        args.appDir = next();
+        break;
+      case "-o":
+      case "--out":
+        args.out = next();
+        break;
+      case "--page-extensions":
+        args.pageExtensions = (next() ?? "").split(",").filter(Boolean);
+        break;
+      case "--ignore":
+        args.ignore = (next() ?? "").split(",").filter(Boolean);
+        break;
+      case "-w":
+      case "--watch":
+        args.watch = true;
+        break;
+      case "--check":
+        args.check = true;
+        break;
+      case "--no-types":
+        args.noTypes = true;
+        break;
+      case "--no-meta":
+        args.noMeta = true;
+        break;
+      case "--silent":
+        args.silent = true;
+        break;
+    }
   }
+
   return args;
 }
 
@@ -27,36 +89,89 @@ Usage:
   next-smart-router generate [options]
 
 Options:
-  --app-dir <path>   Path to the Next.js "app" directory (default: ./app)
-  --out, -o <path>   Output file. ".json" emits JSON, otherwise a TS module
-                     exporting "ROUTES" (default: ./route-manifest.ts)
-  -h, --help         Show this help
+  --app-dir <path>          Path to the Next.js "app" directory (default: ./app)
+  --out, -o <path>          Output file. ".json" emits JSON, otherwise a TS module
+                            exporting "ROUTES" (default: ./route-manifest.ts)
+  --page-extensions <list>  Comma-separated, mirrors next.config pageExtensions
+                            (default: tsx,ts,jsx,js,mdx,md)
+  --ignore <list>           Comma-separated directory names to skip
+  --watch, -w               Regenerate on change (debounced, writes only on diff)
+  --check                   Exit non-zero if the manifest is stale or conflicted
+  --no-types                Skip the "Route" union type
+  --no-meta                 Skip collecting route.meta.json sidecars
+  --silent                  Suppress output
+  -h, --help                Show this help
+  -v, --version             Show the version
 
 Examples:
   next-smart-router generate
   next-smart-router generate --app-dir src/app --out src/route-manifest.ts
+  next-smart-router generate --watch
+  next-smart-router generate --check          # in CI
   next-smart-router generate -o routes.json
 `;
 
-function main() {
-  const [command, ...rest] = process.argv.slice(2);
-  const args = parse(rest);
+export function main(argv: string[] = process.argv.slice(2)): void {
+  // Flags may come before the command (`--help`, `-v`), so parse the whole
+  // list and take the first token that wasn't a flag or a flag's value.
+  const args = parse(argv);
+  const command = args.positional[0];
+
+  if (args.version) {
+    process.stdout.write(`${__NSR_VERSION__}\n`);
+    return;
+  }
 
   if (args.help || !command || command === "help") {
     process.stdout.write(HELP);
     return;
   }
 
-  if (command === "generate") {
-    generateRoutes({
-      appDir: args.appDir ? path.resolve(args.appDir) : undefined,
-      out: args.out ? path.resolve(args.out) : undefined,
-    });
-    return;
+  if (command !== "generate") {
+    process.stderr.write(`Unknown command: ${command}\n\n${HELP}`);
+    process.exit(1);
   }
 
-  process.stderr.write(`Unknown command: ${command}\n\n${HELP}`);
-  process.exit(1);
+  const options = {
+    appDir: args.appDir ? path.resolve(args.appDir) : undefined,
+    out: args.out ? path.resolve(args.out) : undefined,
+    pageExtensions: args.pageExtensions,
+    ignore: args.ignore,
+    emitTypes: !args.noTypes,
+    emitMeta: !args.noMeta,
+    log: !args.silent,
+  };
+
+  try {
+    if (args.watch) {
+      const stop = watchRoutes(options);
+      process.on("SIGINT", () => {
+        stop();
+        process.exit(0);
+      });
+      return;
+    }
+
+    const result = generateRoutes(options);
+
+    if (args.check) {
+      const errors = result.conflicts.filter((c) => c.level === "error");
+
+      if (result.changed) {
+        process.stderr.write(
+          `✗ next-smart-router: ${path.relative(process.cwd(), result.out)} was out of date and has been rewritten.\n` +
+            `  Commit the regenerated manifest.\n`
+        );
+      }
+      if (errors.length || result.changed) process.exit(1);
+    }
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exit(1);
+  }
 }
 
-main();
+// Only run when invoked as the CLI, so the module stays importable in tests.
+if (process.argv[1] && /bin(\.[cm]?js|\.ts)?$/.test(process.argv[1])) {
+  main();
+}

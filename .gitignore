@@ -5,4 +5,12 @@ dist
 coverage
 .idea
 .vscode
+
+# Generated manifests. They're derived from app/, so they're regenerated
+# rather than tracked — CI runs the generator before typechecking.
 route-manifest.ts
+
+# Example app build output
+examples/**/.next
+examples/**/next-env.d.ts
+examples/**/*.tsbuildinfo

@@ -1,26 +1,31 @@
-import { getRoutes } from "./route-registry";
-import {
-  getParamName,
-  isCatchAll,
-  isDynamic,
-  isOptionalCatchAll,
-  toSegments,
-} from "./segments";
+import { getRouteState } from "./route-registry";
+import { warnIfUninitialized } from "./dev-warn";
+import { matchPatternParams, type ParamValue, type RouteParams } from "./route-matcher";
+import { normalizePath } from "./url";
+import type { Route } from "./typed-routes";
+import type { ParamsOf } from "./typed-routes";
 
-/* -------------------------------------------------
- * Types
- * ------------------------------------------------- */
-
-export type ParamValue = string | string[] | undefined;
+export type { ParamValue, RouteParams };
 
 export type ParamsFromKeys<
   T extends readonly string[],
-  TResult extends Partial<Record<T[number], any>> = {}
+  TResult extends Partial<Record<T[number], any>> = {},
 > = {
   [K in T[number]]: K extends keyof TResult ? TResult[K] : string;
 };
 
 export type Coercers = Record<string, (value: string | string[]) => any>;
+
+/** Anything implementing the Standard Schema spec (Zod 3.24+, Valibot, ArkType). */
+export interface StandardSchemaLike<TOut = unknown> {
+  "~standard": {
+    validate: (
+      value: unknown
+    ) =>
+      | { value: TOut; issues?: undefined }
+      | { issues: readonly { message: string; path?: readonly unknown[] }[] };
+  };
+}
 
 export interface GetParamsOptions {
   /** Per-key coercion functions applied to the matched raw value. */
@@ -29,124 +34,110 @@ export interface GetParamsOptions {
   assert?: readonly string[];
   /** Override the pathname to match against (required on the server). */
   pathname?: string;
+  /** Validate and transform the whole param object. */
+  schema?: StandardSchemaLike;
 }
 
-/* -------------------------------------------------
- * Helpers
- * ------------------------------------------------- */
+export class SmartRouterParamError extends Error {
+  readonly issues: readonly { message: string; path?: readonly unknown[] }[];
 
-function getPathname(): string {
-  if (typeof window !== "undefined") {
-    return window.location.pathname;
+  constructor(
+    message: string,
+    issues: readonly { message: string; path?: readonly unknown[] }[] = []
+  ) {
+    super(`next-smart-router: ${message}`);
+    this.name = "SmartRouterParamError";
+    this.issues = issues;
   }
-  throw new Error(
-    "next-smart-router: `pathname` is required in non-browser environments"
-  );
 }
 
-/* -------------------------------------------------
- * getParams
- * ------------------------------------------------- */
+function currentPathname(): string {
+  if (typeof window !== "undefined") return window.location.pathname;
+  throw new SmartRouterParamError("`pathname` is required in non-browser environments");
+}
+
+function applyOptions(params: RouteParams, options: GetParamsOptions | undefined): any {
+  if (!options) return params;
+
+  if (options.coerce) {
+    for (const key of Object.keys(options.coerce)) {
+      if (key in params && params[key] !== undefined) {
+        params[key] = options.coerce[key](params[key] as string | string[]);
+      }
+    }
+  }
+
+  if (options.assert) {
+    for (const key of options.assert) {
+      if (params[key] === undefined) {
+        throw new SmartRouterParamError(`missing required param "${key}"`);
+      }
+    }
+  }
+
+  if (options.schema) {
+    const result = options.schema["~standard"].validate(params);
+    if (result.issues) {
+      throw new SmartRouterParamError(
+        `params failed validation: ${result.issues.map((i) => i.message).join(", ")}`,
+        result.issues
+      );
+    }
+    return result.value;
+  }
+
+  return params;
+}
 
 /**
- * Extract dynamic route params for the current pathname by matching it against
- * the registered routes.
+ * Extract dynamic route params for a pathname.
  *
- * @example
- * // route: /workspaces/[id]/docs/[...path]
+ * Two call styles:
+ *
+ * @example Untyped — matches against every known route, most specific first.
  * const { id, path } = getParams<["id", "path"]>();
- * // id: "42" (string), path: ["a", "b"] (string[])
  *
- * @example
- * const { id } = getParams<["id"], { id: number }>({
- *   coerce: { id: (v) => Number(v) },
- *   assert: ["id"],
- * });
+ * @example Typed — params are inferred from the route literal, and a typo in
+ * the pattern is a compile error rather than a runtime `undefined`.
+ * const { id, slug } = getParams("/w/[id]/docs/[...slug]");
+ * //      ^? string  ^? string[]
  */
+export function getParams<R extends Route>(
+  route: R,
+  options?: GetParamsOptions
+): ParamsOf<R>;
 export function getParams<
   TKeys extends readonly string[] | undefined = undefined,
-  TResult extends Partial<Record<string, any>> = {}
+  TResult extends Partial<Record<string, any>> = {},
 >(
   options?: GetParamsOptions
 ): TKeys extends readonly string[]
   ? ParamsFromKeys<TKeys, TResult>
-  : Record<string, ParamValue> {
-  const pathname = options?.pathname ?? getPathname();
-  const pathSegs = toSegments(pathname);
-  const routes = getRoutes();
+  : Record<string, ParamValue>;
+export function getParams(
+  routeOrOptions?: string | GetParamsOptions,
+  maybeOptions?: GetParamsOptions
+): any {
+  const route = typeof routeOrOptions === "string" ? routeOrOptions : undefined;
+  const options = typeof routeOrOptions === "string" ? maybeOptions : routeOrOptions;
 
-  for (const route of routes) {
-    const routeSegs = toSegments(route);
-    const params: Record<string, ParamValue> = {};
+  if (!route) warnIfUninitialized("getParams");
 
-    let i = 0;
-    let j = 0;
-    let match = true;
+  const state = getRouteState();
+  const pathname = normalizePath(options?.pathname ?? currentPathname(), state.config);
 
-    while (i < routeSegs.length) {
-      const routeSeg = routeSegs[i];
-      const pathSeg = pathSegs[j];
-
-      if (isOptionalCatchAll(routeSeg)) {
-        params[getParamName(routeSeg)] = pathSegs.slice(j);
-        j = pathSegs.length;
-        i++;
-        break;
-      }
-
-      if (isCatchAll(routeSeg)) {
-        if (j >= pathSegs.length) {
-          match = false;
-          break;
-        }
-        params[getParamName(routeSeg)] = pathSegs.slice(j);
-        j = pathSegs.length;
-        i++;
-        break;
-      }
-
-      if (isDynamic(routeSeg)) {
-        if (!pathSeg) {
-          match = false;
-          break;
-        }
-        params[getParamName(routeSeg)] = decodeURIComponent(pathSeg);
-        i++;
-        j++;
-        continue;
-      }
-
-      if (routeSeg !== pathSeg) {
-        match = false;
-        break;
-      }
-
-      i++;
-      j++;
-    }
-
-    if (!match || j < pathSegs.length) continue;
-
-    /* Apply coercion */
-    if (options?.coerce) {
-      for (const key in options.coerce) {
-        if (key in params) {
-          params[key] = options.coerce[key](params[key] as string | string[]);
-        }
-      }
-    }
-
-    /* Assertions */
-    if (options?.assert) {
-      for (const key of options.assert) {
-        if (params[key] === undefined) {
-          throw new Error(`next-smart-router: missing required param "${key}"`);
-        }
-      }
-    }
-
-    return params as any;
+  // Typed form: match the one pattern the caller named.
+  if (route) {
+    const params = matchPatternParams(pathname, route);
+    if (!params) return applyOptions({}, options);
+    return applyOptions(params, options);
   }
 
-  return {} as any;
+  // Untyped form: most specific registered route wins.
+  for (const candidate of state.ordered) {
+    const params = matchPatternParams(pathname, candidate);
+    if (params) return applyOptions(params, options);
+  }
+
+  return applyOptions({}, options);
 }

@@ -1,10 +1,16 @@
+import { readFileSync } from "node:fs";
 import { defineConfig } from "tsup";
+
+const pkg = JSON.parse(readFileSync("./package.json", "utf8")) as {
+  version: string;
+};
 
 export default defineConfig({
   entry: {
     index: "src/index.ts",
     react: "src/react.ts",
-    "cli/generate-routes": "src/cli/generate-routes.ts",
+    plugin: "src/plugin.ts",
+    "cli/index": "src/cli/index.ts",
     "cli/bin": "src/cli/bin.ts",
   },
   format: ["esm", "cjs"],
@@ -15,7 +21,10 @@ export default defineConfig({
   sourcemap: false,
   splitting: false,
   treeshake: true,
-  external: ["react", "react-dom", "next", "next/navigation"],
+  external: ["react", "react-dom", "next", "next/navigation", "next/link"],
+  define: {
+    __NSR_VERSION__: JSON.stringify(pkg.version),
+  },
   // Note: tsup strips module-level "use client" directives while bundling, so
   // scripts/add-use-client.mjs re-adds it to the React entry after the build
   // (see the "build" npm script).

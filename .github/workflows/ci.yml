@@ -1,0 +1,86 @@
+name: CI
+
+# Runs on every PR and every push to main. The release workflow depends on
+# this having passed — before, the first test run was the one that published.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: node ${{ matrix.node }} · next ${{ matrix.next }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22]
+        next: ["13.5", "14", "15"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+
+      # peerDependencies claims next >=13.0.0 — this is what makes that true.
+      - name: Install the Next.js under test
+        run: npm install --no-save --legacy-peer-deps next@${{ matrix.next }}
+
+      - run: npm run typecheck
+      - run: npm test
+
+  quality:
+    name: lint · build · package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test:coverage
+      - run: npm run build
+
+      # Catches the "CJS consumers get ESM type declarations" class of bug.
+      - run: npx publint
+
+  smoke:
+    name: consume the real tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm pack --pack-destination /tmp
+
+      # Installing the packed tarball exercises the real exports map through
+      # the real resolver — the cheapest guard against packaging regressions.
+      - name: Typecheck and build the example app against the tarball
+        working-directory: examples/playground
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save /tmp/next-smart-router-*.tgz
+          # The manifest is generated, not tracked — tsc needs it to exist
+          # before `next build` (which would generate it) ever runs.
+          npx next-smart-router generate --app-dir app --out route-manifest.ts
+          npx tsc --noEmit
+          npx next build

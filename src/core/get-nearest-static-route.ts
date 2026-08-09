@@ -1,5 +1,15 @@
-import { getRoutes } from "./route-registry";
+import { warnIfUninitialized } from "./dev-warn";
+import { getRouteState } from "./route-registry";
 import { toSegments } from "./segments";
+import { applyBasePath, normalizePath } from "./url";
+
+export interface NearestStaticRouteOptions {
+  /**
+   * Whether `pathname` itself may be returned when it is already a static
+   * route. Default `true` — pass `false` to force a strict ancestor.
+   */
+  includeSelf?: boolean;
+}
 
 /**
  * Return the nearest ancestor of `pathname` that is a fully *static* route
@@ -8,17 +18,25 @@ import { toSegments } from "./segments";
  *
  * Falls back to "/".
  */
-export function getNearestStaticRoute(pathname: string): string {
-  const staticRoutes = [...getRoutes()].filter((route) => !route.includes("["));
-  const parts = toSegments(pathname);
+export function getNearestStaticRoute(
+  pathname: string,
+  options: NearestStaticRouteOptions = {}
+): string {
+  warnIfUninitialized("getNearestStaticRoute");
+
+  const state = getRouteState();
+  const staticRoutes = state.staticRoutes;
+  const parts = toSegments(normalizePath(pathname, state.config));
+
+  if (options.includeSelf === false) parts.pop();
 
   while (parts.length > 0) {
     const candidate = "/" + parts.join("/");
     if (staticRoutes.includes(candidate)) {
-      return candidate;
+      return applyBasePath(candidate, state.config.basePath);
     }
-    parts.pop(); // remove last segment
+    parts.pop();
   }
 
-  return "/";
+  return applyBasePath("/", state.config.basePath);
 }

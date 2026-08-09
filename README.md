@@ -1,280 +1,407 @@
 # next-smart-router
 
-[![npm version](https://img.shields.io/npm/v/next-smart-router.svg)](https://www.npmjs.com/package/next-smart-router)
-[![npm downloads](https://img.shields.io/npm/dm/next-smart-router.svg)](https://www.npmjs.com/package/next-smart-router)
-[![license](https://img.shields.io/npm/l/next-smart-router.svg)](./LICENSE)
+A routing layer for the Next.js App Router, built on one idea: your `app/`
+directory already describes every route in the application, so the router
+should be able to answer questions about it.
 
-Filesystem-style routing helpers for the **Next.js App Router**.
-
-Think of your `app/` routes like a Unix filesystem: navigate with relative
-paths (`../`, `./`), auto-generate a route manifest, extract typed dynamic
-params, build breadcrumbs, and always fall back to a real (never-404) route.
-
-- 🧭 **Relative navigation** — `router.push("../settings")`
-- 🗺️ **Auto route manifest** — a CLI walks your `app/` directory
-- 🏷️ **Typed params** — `getParams<["id"]>()` with coercion & assertion
-- 🍞 **Breadcrumbs** — only real, matchable ancestors
-- ⬆️ **Safe back** — `fsBack()` jumps to the nearest existing route
-- 🔌 **Native escape hatch** — the raw `next/navigation` router is always exposed
-- 🪶 **Zero runtime deps** — `next` and `react` are optional peers
-
-## vs. Next's `useRouter`
-
-`useSmartRouter` is a **thin superset** of `next/navigation`'s `useRouter`. It
-keeps every native method and adds the pieces `useRouter` leaves to you. The
-raw Next router is always on `.router`, so you lose nothing.
-
-### Method-by-method
-
-| | Next `useRouter()` | `useSmartRouter()` |
-| --- | --- | --- |
-| `push(href)` | absolute href only | **relative-aware** (`"../settings"`, `"./new"`) + absolute |
-| `replace(href)` | absolute href only | **relative-aware** + absolute |
-| `prefetch(href)` | absolute href only | **relative-aware** + absolute |
-| `back()` | ✅ | ✅ (delegates) |
-| `forward()` | ✅ | ✅ (delegates) |
-| `refresh()` | ✅ | ✅ (delegates) |
-| current pathname | separate `usePathname()` | `.pathname` included |
-| the native router | — | `.router` (the exact `useRouter()` instance) |
-| **`fsBack()` / `pop()`** | ❌ | up to the nearest *real* route — never 404 |
-
-### Things `useRouter` doesn't do at all
-
-`useRouter` is navigation-only. These have no equivalent in `next/navigation`
-and are why the library exists:
-
-| Need | With `next/navigation` | With next-smart-router |
-| --- | --- | --- |
-| **Move relative to where you are** | Rebuild the absolute path from `usePathname()` and normalize `..` by hand. | `nav.push("../settings")` |
-| **A "back/up" button that never 404s** | `router.back()` can leave your app or land on a deleted route. | `nav.fsBack()` walks up to the nearest *real* route. |
-| **Breadcrumbs** | Hand-write trail logic per layout; it drifts from real routes. | `getBreadcrumbs(pathname)` — only matchable ancestors. |
-| **Read params away from a page** | `useParams` only works inside the route tree; middleware/logging/edge have just a raw string. | `getParams<["id"]>({ pathname })` anywhere, typed. |
-| **Redirect somewhere "safe"** | Strip dynamic ids from the path by hand. | `getNearestStaticRoute(pathname)`. |
-| **Know all your routes at runtime** | No built-in registry of route patterns. | A generated manifest + a lazily-read registry. |
-
-### Side by side
-
-```ts
-// next/navigation — you assemble the target yourself
-import { useRouter, usePathname } from "next/navigation";
-const router = useRouter();
-const pathname = usePathname();                        // /workspaces/42/overview
-router.push(pathname.replace(/\/[^/]+$/, "/settings")); // /workspaces/42/settings
-
-// next-smart-router — relative, plus the native router still on hand
-import { useSmartRouter } from "next-smart-router/react";
-const nav = useSmartRouter();
-nav.push("../settings");
-nav.router.refresh();                                   // native escape hatch
-```
-
-### When plain `useRouter` is enough
-
-- You only ever navigate with absolute paths.
-- You only need params inside a page/layout (Next's `useParams` covers it).
-- You want routes checked at *compile* time → Next's experimental
-  `typedRoutes`; this library validates at *runtime* instead.
-
-## Limitations & known trade-offs
-
-Be aware of these before adopting — details in
-[FAQ](./docs/faq.md) and [Concepts](./docs/concepts.md):
-
-- **The manifest is a build-time snapshot.** Add a route folder and you must
-  regenerate (wire `predev`/`prebuild`). Nothing updates the registry at runtime
-  on its own.
-- **You must `initializeSmartRouter()` once.** Before that, registry-backed
-  helpers (`getParams`, `getBreadcrumbs`, `fsBackPathSafe`,
-  `getNearestStaticRoute`) only know about `/`.
-- **`resolvePath` is pure string math** — `push("../x")` does *not* verify the
-  target exists. Guard with `matchRoute(target)` if you need certainty.
-- **Runtime, not compile-time, param typing.** `getParams<["id"]>()` trusts the
-  keys you pass; it can't prove they exist in the route at build time.
-- **First registered match wins.** If two patterns can match the same path
-  (e.g. a static route and a `[slug]`), `getParams` returns the first one in
-  registration order. The CLI sorts routes, which generally puts static before
-  dynamic, but overlapping patterns are inherently ambiguous.
-- **`fsBack` walks the *path*, not browser history** — it's deliberately not the
-  same as pressing the browser back button (use `back()` for that).
-
-## Install
+Relative navigation. Typed routes and params. Query params as state. Data
+handed from one screen to the next. Breadcrumbs, route trees, back that never
+404s — all derived from a manifest generated out of the filesystem.
 
 ```bash
 npm install next-smart-router
 ```
 
-## Documentation
+---
 
-Full guides live in [`docs/`](./docs/README.md):
+## Quick start
 
-- [Getting Started](./docs/getting-started.md)
-- [Concepts](./docs/concepts.md) — the mental model, registry, matching rules
-- [API Reference](./docs/api-reference.md)
-- [CLI](./docs/cli.md)
-- [Recipes](./docs/recipes.md)
-- [FAQ & Troubleshooting](./docs/faq.md)
+**1. Generate a manifest.** The plugin does it on `next dev` and `next build`,
+and keeps it fresh while you work:
 
-## 1. Generate a route manifest
+```js
+// next.config.mjs
+import { withSmartRouter } from "next-smart-router/plugin";
 
-Walk your Next.js `app/` directory and emit a manifest of route patterns:
+export default withSmartRouter({/* your normal Next config */});
+```
+
+<details>
+<summary>Or run the CLI yourself</summary>
 
 ```bash
 npx next-smart-router generate --app-dir src/app --out src/route-manifest.ts
+npx next-smart-router generate --watch     # during dev
+npx next-smart-router generate --check     # in CI, fails if stale
 ```
 
-Produces:
+</details>
+
+**2. Initialize once**, from a module both the server and client graphs import:
 
 ```ts
-/* AUTO-GENERATED by next-smart-router — DO NOT EDIT */
-export const ROUTES = new Set([
-  "/",
-  "/workspaces",
-  "/workspaces/[id]",
-  "/docs/[...slug]",
-]);
+import { initializeSmartRouter } from "next-smart-router";
+import { ROUTES, META } from "@/route-manifest";
+
+initializeSmartRouter({
+  routes: ROUTES,
+  meta: META,
+  stickyQuery: ["locale", /^utm_/],
+});
 ```
 
-Add it to your build so it stays fresh:
+**3. Register the route union** for typed routes everywhere (optional but
+recommended):
 
-```jsonc
-// package.json
-{
-  "scripts": {
-    "predev": "next-smart-router generate --app-dir src/app --out src/route-manifest.ts",
-    "prebuild": "next-smart-router generate --app-dir src/app --out src/route-manifest.ts"
+```ts
+// smart-router.d.ts
+import type { Route } from "@/route-manifest";
+
+declare module "next-smart-router" {
+  interface Register {
+    route: Route;
   }
 }
 ```
 
-> Route groups `(group)` are stripped, and `_private` / `api` / `@parallel`
-> folders are ignored — matching Next.js semantics.
+---
 
-## 2. Initialize once
+## What you get
 
-```ts
-// e.g. in a root client provider or instrumentation file
-import { initializeSmartRouter } from "next-smart-router";
-import { ROUTES } from "@/route-manifest";
-
-initializeSmartRouter({ routes: ROUTES });
-```
-
-## 3. Use it
-
-### The client hook
+### Relative navigation, in code and in markup
 
 ```tsx
-"use client";
-import { useSmartRouter } from "next-smart-router/react";
+const nav = useSmartRouter();
 
-export function Toolbar() {
-  const nav = useSmartRouter();
-  return (
-    <>
-      <button onClick={() => nav.push("../settings")}>Settings</button>
-      <button onClick={() => nav.push("./new")}>New</button>
-      <button onClick={() => nav.fsBack()}>Back</button>
+nav.push("../members"); // resolved against the current path
+nav.push("./edit", { scroll: false });
+nav.sibling("settings");
+nav.up(2); // two levels up, landing on a real route
+nav.fsBack(); // nearest existing ancestor — never a 404
 
-      {/* native next/navigation router is always available */}
-      <button onClick={() => nav.refresh()}>Refresh</button>
-      <button onClick={() => nav.router.push("/dashboard", { scroll: false })}>
-        Dashboard
-      </button>
-    </>
-  );
-}
+<SmartLink href="../members" activeClassName="is-active">
+  Members
+</SmartLink>;
 ```
 
-Prefer the raw Next hooks? They're re-exported from the same entry:
+`nav.router` is always the untouched Next router, so this is strictly a
+superset.
+
+### Typed routes and hrefs
 
 ```ts
-import { useRouter, usePathname, useSearchParams, useParams } from "next-smart-router/react";
+buildHref("/w/[id]/docs/[...slug]", { id: 42, slug: ["getting started"] });
+// → "/w/42/docs/getting%20started"
+
+buildHref("/w/[typo]", { id: 42 });
+// ✗ Argument of type '"/w/[typo]"' is not assignable to parameter of type Route
+
+const { id, slug } = getParams("/w/[id]/docs/[...slug]");
+//      ^? string  ^? string[]
 ```
 
-### Typed params
+Every segment is encoded, so a param containing `/`, `?` or `#` cannot break
+out of its slot. Missing params throw instead of producing a URL with a
+literal `[id]` in it.
 
-```ts
-import { getParams } from "next-smart-router";
+### Query params as state
 
-// route: /workspaces/[id]/docs/[...path]
-const { id, path } = getParams<["id", "path"]>();
-// id: string, path: string[]
+```tsx
+// One param, typed, with a default
+const [page, setPage] = useQueryState("page", parseAsInt.default(1));
 
-// coerce + assert
-const { id } = getParams<["id"], { id: number }>({
-  coerce: { id: (v) => Number(v) },
-  assert: ["id"],
+// Several params in ONE navigation, not one per key
+const [filters, setFilters] = useQueryStates({
+  tab: parseAsEnum(["overview", "members"]).default("overview"),
+  page: parseAsInt.default(1).clearOnDefault(),
+});
+setFilters({ tab: "members", page: 1 });
+
+// Client-side filtering with no RSC round-trip per keystroke
+const [q, setQ] = useQueryState("q", parseAsString.default(""), {
+  shallow: true,
+  throttleMs: 200,
 });
 ```
 
-On the server, pass `pathname` explicitly:
+Parsers never throw — a hand-edited URL falls back to the default rather than
+white-screening the app.
+
+**One definition, both runtimes:**
 
 ```ts
-getParams<["id"]>({ pathname: "/workspaces/42" });
+// app/w/[id]/search-params.ts
+export const workspaceSearch = defineSearchParams({
+  tab: parseAsEnum(["overview", "members"]).default("overview"),
+  page: parseAsInt.default(1),
+});
+
+// server component
+const { tab, page } = workspaceSearch.parse(searchParams);
+
+// client component — same definition, no drift
+const [{ tab, page }, set] = useQueryStates(workspaceSearch);
 ```
 
-### Breadcrumbs
+### Sticky query params
+
+Some params are screen-local (`page`, `sort`) and should die on navigation.
+Others are session-scoped (`locale`, `ref`, `utm_*`) and must survive every
+link. Declare it once:
 
 ```ts
-import { getBreadcrumbs } from "next-smart-router";
-
-getBreadcrumbs("/workspaces/42/settings");
-// [{ label: "workspaces", href: "/workspaces" },
-//  { label: "42",         href: "/workspaces/42" },
-//  { label: "settings",   href: "/workspaces/42/settings" }]
+initializeSmartRouter({ routes: ROUTES, stickyQuery: ["locale", /^utm_/] });
 ```
 
-### Safe / static back
+```
+on /w/42?locale=fr&utm_source=x&page=3
+nav.push("../members")  →  /w/42/members?locale=fr&utm_source=x
+```
+
+`<SmartLink>` inherits this, so the policy holds in markup too — which is the
+part that can't be done by hand without touching every link in the app.
+
+### Handing data to the next screen
+
+```tsx
+// Screen A
+nav.push("/checkout", {
+  state: { cart },
+  flash: { type: "success", message: "Cart saved" },
+});
+
+// Screen B
+const state = useRouteState<{ cart: Cart }>();
+```
+
+> **The contract:** `useRouteState` returns `undefined` on the server render and
+> on every cold entry — a direct link, a refresh, a shared URL. That is not a
+> bug to work around. Treat it as a hydration hint for data you would fetch
+> anyway:
+>
+> ```ts
+> const { data } = useQuery({
+>   queryKey: ["order", id],
+>   queryFn: () => fetchOrder(id),
+>   initialData: state?.order, // skips the spinner, nothing more
+> });
+> ```
+
+Four backing stores, chosen per app or per call:
+
+| Strategy              | Survives refresh | Back / forward    | Shared link | Clean URL       | Size      |
+| --------------------- | ---------------- | ----------------- | ----------- | --------------- | --------- |
+| `memory`              | ✗                | ✗                 | ✗           | ✓               | unbounded |
+| `session` _(default)_ | ✓                | ✓ last-write-wins | ✗           | ✓               | ~5 MB     |
+| `url-key`             | ✓                | ✓ exact per entry | ✗           | adds `?_nsr=`   | ~5 MB     |
+| `query`               | ✓                | ✓                 | ✓           | encodes payload | ~2 KB     |
+
+Payloads expire (`ttlMs`), evict (`maxEntries`), and cap (`maxBytes`); dev
+warns about values that won't survive serialization.
+
+### Navigation built from the filesystem
+
+```tsx
+function WorkspaceTabs() {
+  const tabs = useChildren("./");
+
+  return tabs.map((tab) => (
+    <SmartLink key={tab.path} href={`./${tab.segment}`} activeClassName="on">
+      {tab.meta?.title ?? tab.segment}
+    </SmartLink>
+  ));
+}
+```
+
+Add `app/w/[id]/billing/page.tsx` and the tab appears. There is no menu array
+to keep in sync.
+
+### Breadcrumbs that are actually renderable
 
 ```ts
-import { fsBackPathSafe, getNearestStaticRoute } from "next-smart-router";
-
-fsBackPathSafe("/workspaces/42/settings");   // "/workspaces/42"
-getNearestStaticRoute("/workspaces/42/edit"); // "/workspaces" (skips dynamic)
+getBreadcrumbs("/w/42/settings", {
+  labels: { "42": workspace.name },
+  format: "title",
+});
+// [{ label: "W",        href: "/w",             pattern: "/w" },
+//  { label: "Acme Inc", href: "/w/42",          pattern: "/w/[id]", param: "id" },
+//  { label: "Settings", href: "/w/42/settings", isCurrent: true }]
 ```
+
+### Route protection next to the page it protects
+
+```json
+// app/w/[id]/settings/route.meta.json
+{ "title": "Settings", "requiresAuth": true, "roles": ["owner", "admin"] }
+```
+
+```ts
+// middleware.ts — createRouter is pure, so it runs on the edge with no setup
+import { createRouter } from "next-smart-router";
+import { ROUTES, META } from "@/route-manifest";
+
+const router = createRouter(ROUTES, { meta: META });
+
+export function middleware(request: NextRequest) {
+  const match = router.match(request.nextUrl.pathname);
+  if (match?.meta?.requiresAuth && !getSession(request)) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+}
+```
+
+### Guards, events, devtools
+
+```tsx
+// Blocks nav.push / SmartLink clicks; beforeunload covers hard navigation.
+useNavigationGuard({ when: form.formState.isDirty });
+
+// Analytics keyed by pattern, not by URL: /w/[id]/settings × 10,000
+// instead of 10,000 distinct rows.
+subscribeNavigation((e) => analytics.page(e.route, { ...e.params, ...e.search }));
+
+{
+  process.env.NODE_ENV === "development" && <SmartRouterDevtools />;
+}
+```
+
+The devtools panel shows the matched pattern, its specificity rank, params,
+sticky params, the transfer payload, and — the useful one — which other
+patterns also matched but lost.
+
+---
+
+## A note on Suspense
+
+`useQueryState`, `useQueryStates` and `useRoute` read `useSearchParams()` so
+their values are correct during SSR. That opts a page into Next's
+client-rendering bailout, exactly as calling `useSearchParams()` directly does,
+so a **statically prerendered** page needs a `<Suspense>` boundary around the
+component using them.
+
+`useRouteState`, `useRouteStateOr`, `useClearRouteState` and `useFlash` do
+**not**, because they are `undefined` on the server by contract and have
+nothing to gain from the router's snapshot.
+
+---
 
 ## API
 
-| Export | Kind | Description |
-| --- | --- | --- |
-| `initializeSmartRouter({ routes, force? })` | fn | Register known routes (call once). |
-| `setRoutes(routes)` / `getRoutes()` / `hasRoutes()` | fn | Low-level registry access. |
-| `useSmartRouter()` | hook | `next-smart-router/react` — relative push/replace/prefetch, back/forward/refresh, fsBack/pop, plus the raw `.router`. |
-| `useRouter` / `usePathname` / `useSearchParams` / `useParams` | hook | `next-smart-router/react` — native `next/navigation` hooks, re-exported. |
-| `getParams<Keys, Coerce>(options?)` | fn | Extract typed dynamic params. |
-| `getBreadcrumbs(pathname)` | fn | Breadcrumb trail of real ancestors. |
-| `fsBackPathSafe(pathname)` | fn | Nearest existing ancestor route. |
-| `getNearestStaticRoute(pathname)` | fn | Nearest non-dynamic ancestor route. |
-| `resolvePath(current, target)` | fn | Resolve `../`, `./`, absolute paths. |
-| `matchRoute(path, routes?)` / `matchRoutePattern(path, pattern)` | fn | Route matching (dynamic, catch-all, optional catch-all). |
-| `smartHistory` | obj | Optional in-memory navigation stack. |
+<details>
+<summary><b>Setup</b></summary>
 
-## CLI
+`initializeSmartRouter` · `resetSmartRouter` · `isSmartRouterInitialized` ·
+`getConfig` · `setConfig` · `setRoutes` · `setRouteMeta` · `getRoutes` ·
+`getOrderedRoutes` · `getStaticRoutes` · `getRouteState` · `hasRoutes` ·
+`clearRoutes`
 
+</details>
+
+<details>
+<summary><b>Matching &amp; building</b></summary>
+
+`matchRoute` · `matchRouteIn` · `matchRoutePattern` · `matchPatternParams` ·
+`routeExists` · `getParams` · `buildHref` · `tryBuildHref` · `isActive` ·
+`resolvePath` · `resolveUp` · `fsBackPathSafe` · `getNearestStaticRoute` ·
+`getBreadcrumbs` · `createRouter` · `validateRoutes`
+
+</details>
+
+<details>
+<summary><b>Route tree</b></summary>
+
+`getRouteTree` · `getRouteNode` · `getChildren` · `getSiblings` · `getParent` ·
+`getDepth` · `getDescendants`
+
+</details>
+
+<details>
+<summary><b>URL &amp; query</b></summary>
+
+`splitUrl` · `toPathname` · `parseQuery` · `buildQuery` · `withQuery` ·
+`setQuery` · `pickQuery` · `omitQuery` · `mergeQuery` · `selectQuery` ·
+`normalizePath` · `applyBasePath` · `applyTrailingSlash`
+
+`createParser` · `defineSearchParams` · `parseAsString` · `parseAsInt` ·
+`parseAsFloat` · `parseAsBoolean` · `parseAsIsoDate` · `parseAsDateOnly` ·
+`parseAsEnum` · `parseAsArrayOf` · `parseAsJson` · `parseAsSortOrder`
+
+</details>
+
+<details>
+<summary><b>Transfer &amp; events</b></summary>
+
+`writeTransfer` · `readTransfer` · `clearTransfer` · `clearTransferFor` ·
+`writeFlash` · `consumeFlash` · `peekFlash` · `subscribeNavigation` ·
+`onBeforeNavigate` · `createSmartHistory`
+
+</details>
+
+<details>
+<summary><b>React entry — <code>next-smart-router/react</code></b></summary>
+
+`useSmartRouter` · `useRoute` · `useIsActive` · `useBreadcrumbs` ·
+`useQueryState` · `useQueryStates` · `useSearchParamsObject` ·
+`useRouteState` · `useRouteStateOr` · `useClearRouteState` · `useFlash` ·
+`useRouteTree` · `useChildren` · `useSiblings` · `useNavigationGuard` ·
+`SmartHistoryProvider` · `useSmartHistory` · `SmartLink` ·
+`SmartRouterDevtools`
+
+Plus `useRouter`, `usePathname`, `useSearchParams` and `useParams` re-exported
+from `next/navigation`.
+
+</details>
+
+---
+
+## Configuration
+
+```ts
+initializeSmartRouter({
+  routes: ROUTES,
+  meta: META,
+
+  basePath: "/app", // mirrors next.config
+  trailingSlash: false,
+  locales: ["en", "fr"], // stripped before matching
+
+  stickyQuery: ["locale", /^utm_/],
+
+  transfer: {
+    strategy: "session", // memory | session | url-key | query
+    ttlMs: 5 * 60_000,
+    maxEntries: 20,
+    maxBytes: 256 * 1024,
+    onOverflow: "warn", // warn | throw | drop
+    namespace: "acme",
+  },
+
+  scrollRestoration: "auto",
+  focusOnNavigate: "main",
+  announceNavigation: true,
+  interceptBrowserBack: false,
+});
 ```
-next-smart-router generate [options]
 
-  --app-dir <path>   Path to the "app" directory (default: ./app)
-  --out, -o <path>   Output file; ".json" emits JSON, else a TS module
-                     exporting "ROUTES" (default: ./route-manifest.ts)
-  -h, --help         Show help
-```
+---
 
-## Contributing & Publishing
+## Example app
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the dev setup and project layout.
+[`examples/playground`](./examples/playground) is a real Next.js app using every
+feature. CI installs the packed tarball into it and runs `next build`, which is
+what proves the exports map and the `"use client"` boundary work outside this
+repo.
 
-To cut a release:
+## Docs
 
-```bash
-npm login              # once; requires an npm account with 2FA
-npm version patch      # bump (patch | minor | major) + git tag
-npm publish            # runs the build via prepublishOnly, then publishes
-```
-
-The package publishes publicly (`publishConfig.access: "public"`). Remember to
-update [CHANGELOG.md](./CHANGELOG.md).
+[Getting started](./docs/getting-started.md) ·
+[Concepts](./docs/concepts.md) ·
+[API reference](./docs/api-reference.md) ·
+[Recipes](./docs/recipes.md) ·
+[CLI](./docs/cli.md) ·
+[FAQ](./docs/faq.md) ·
+[Migrating to 1.0](./docs/migration-1.0.md)
 
 ## License
 
-MIT © next-smart-router contributors
+MIT

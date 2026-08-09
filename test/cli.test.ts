@@ -1,0 +1,201 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { collectRoutes, generateRoutes } from "../src/cli/generate-routes";
+
+const temporaries: string[] = [];
+
+afterEach(() => {
+  for (const dir of temporaries.splice(0)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** Write a fixture tree and return the app directory. */
+function writeFixture(tree: Record<string, string>): string {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "nsr-"));
+  temporaries.push(root);
+
+  const appDir = path.join(root, "app");
+
+  for (const [file, contents] of Object.entries(tree)) {
+    const full = path.join(appDir, file);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    fs.writeFileSync(full, contents);
+  }
+
+  return appDir;
+}
+
+describe("collectRoutes", () => {
+  it("honours every app-directory convention", () => {
+    const appDir = writeFixture({
+      "page.tsx": "",
+      "(marketing)/about/page.tsx": "", //  route group -> /about
+      "w/[id]/page.tsx": "",
+      "w/[id]/api/page.tsx": "", //          BUG-09: a real page named "api"
+      "w/[id]/@modal/page.tsx": "", //       parallel slot -> skipped
+      "feed/(..)photo/page.tsx": "", //      BUG-10: intercepting -> skipped
+      "feed/page.tsx": "",
+      "api/users/route.ts": "", //           route handler -> skipped
+      "_internal/page.tsx": "", //           private -> skipped
+      "docs/[...slug]/page.tsx": "",
+      "files/[[...path]]/page.tsx": "",
+    });
+
+    expect(collectRoutes(appDir).routes).toEqual([
+      "/",
+      "/about",
+      "/feed",
+      "/w/[id]",
+      "/w/[id]/api",
+      "/docs/[...slug]",
+      "/files/[[...path]]",
+    ]);
+  });
+
+  it("BUG-09: keeps a page under a folder named api", () => {
+    const appDir = writeFixture({ "settings/api/page.tsx": "" });
+    expect(collectRoutes(appDir).routes).toContain("/settings/api");
+  });
+
+  it("BUG-09: still skips a folder holding only a route handler", () => {
+    const appDir = writeFixture({ "api/users/route.ts": "" });
+    expect(collectRoutes(appDir).routes).toEqual(["/"]);
+  });
+
+  it("BUG-10: skips every intercepting-route spelling", () => {
+    const appDir = writeFixture({
+      "feed/(.)photo/page.tsx": "",
+      "feed/(..)photo/page.tsx": "",
+      "feed/(...)photo/page.tsx": "",
+      "feed/page.tsx": "",
+    });
+    expect(collectRoutes(appDir).routes).toEqual(["/", "/feed"]);
+  });
+
+  it("BUG-11: honours pageExtensions and finds mdx", () => {
+    const appDir = writeFixture({
+      "guide/page.mdx": "",
+      "other/page.svelte": "",
+    });
+
+    expect(collectRoutes(appDir).routes).toContain("/guide");
+    expect(collectRoutes(appDir).routes).not.toContain("/other");
+    expect(collectRoutes(appDir, { pageExtensions: ["svelte"] }).routes).toContain(
+      "/other"
+    );
+  });
+
+  it("returns routes in specificity order", () => {
+    const appDir = writeFixture({
+      "docs/[...slug]/page.tsx": "",
+      "docs/about/page.tsx": "",
+    });
+    expect(collectRoutes(appDir).routes).toEqual([
+      "/",
+      "/docs/about",
+      "/docs/[...slug]",
+    ]);
+  });
+
+  it("collects route.meta.json sidecars", () => {
+    const appDir = writeFixture({
+      "w/page.tsx": "",
+      "w/route.meta.json": JSON.stringify({ title: "Workspaces", requiresAuth: true }),
+    });
+
+    expect(collectRoutes(appDir).meta).toEqual({
+      "/w": { title: "Workspaces", requiresAuth: true },
+    });
+  });
+
+  it("respects an explicit ignore list", () => {
+    const appDir = writeFixture({ "drafts/page.tsx": "", "live/page.tsx": "" });
+    expect(collectRoutes(appDir, { ignore: ["drafts"] }).routes).toEqual([
+      "/",
+      "/live",
+    ]);
+  });
+
+  it("throws a useful message for a missing app dir", () => {
+    expect(() => collectRoutes("/definitely/not/here")).toThrow(
+      /app directory not found/
+    );
+  });
+});
+
+describe("generateRoutes", () => {
+  it("emits a TS module with ROUTES and a Route union", () => {
+    const appDir = writeFixture({ "page.tsx": "", "w/[id]/page.tsx": "" });
+    const out = path.join(path.dirname(appDir), "route-manifest.ts");
+
+    generateRoutes({ appDir, out, log: false });
+    const contents = fs.readFileSync(out, "utf8");
+
+    expect(contents).toContain("export const ROUTES = new Set(");
+    expect(contents).toContain("export type Route =");
+    expect(contents).toContain('| "/w/[id]"');
+  });
+
+  it("can skip the type emit", () => {
+    const appDir = writeFixture({ "page.tsx": "" });
+    const out = path.join(path.dirname(appDir), "manifest.ts");
+
+    generateRoutes({ appDir, out, log: false, emitTypes: false });
+    expect(fs.readFileSync(out, "utf8")).not.toContain("export type Route");
+  });
+
+  it("emits JSON when the output ends in .json", () => {
+    const appDir = writeFixture({ "page.tsx": "", "w/page.tsx": "" });
+    const out = path.join(path.dirname(appDir), "routes.json");
+
+    generateRoutes({ appDir, out, log: false });
+    expect(JSON.parse(fs.readFileSync(out, "utf8"))).toEqual(["/", "/w"]);
+  });
+
+  it("BUG-12: does not rewrite an unchanged file", () => {
+    const appDir = writeFixture({ "page.tsx": "" });
+    const out = path.join(path.dirname(appDir), "manifest.ts");
+
+    expect(generateRoutes({ appDir, out, log: false }).changed).toBe(true);
+
+    const before = fs.statSync(out).mtimeMs;
+    expect(generateRoutes({ appDir, out, log: false }).changed).toBe(false);
+    expect(fs.statSync(out).mtimeMs).toBe(before);
+  });
+
+  it("rewrites once a route appears", () => {
+    const appDir = writeFixture({ "page.tsx": "" });
+    const out = path.join(path.dirname(appDir), "manifest.ts");
+
+    generateRoutes({ appDir, out, log: false });
+    fs.mkdirSync(path.join(appDir, "new"), { recursive: true });
+    fs.writeFileSync(path.join(appDir, "new", "page.tsx"), "");
+
+    const result = generateRoutes({ appDir, out, log: false });
+    expect(result.changed).toBe(true);
+    expect(result.routes).toContain("/new");
+  });
+
+  it("creates missing output directories", () => {
+    const appDir = writeFixture({ "page.tsx": "" });
+    const out = path.join(path.dirname(appDir), "deep", "nested", "manifest.ts");
+
+    generateRoutes({ appDir, out, log: false });
+    expect(fs.existsSync(out)).toBe(true);
+  });
+
+  it("reports conflicts without failing the generate", () => {
+    const appDir = writeFixture({
+      "w/[id]/page.tsx": "",
+      "w/[workspaceId]/page.tsx": "",
+    });
+    const out = path.join(path.dirname(appDir), "manifest.ts");
+
+    const result = generateRoutes({ appDir, out, log: false });
+    expect(result.conflicts.map((c) => c.kind)).toContain("param-name-mismatch");
+  });
+});

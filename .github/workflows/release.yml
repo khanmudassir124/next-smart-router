@@ -1,17 +1,15 @@
 name: Release
 
-# On every push to main: build, test, bump the patch version, tag it, publish
-# to npm, and push the bump commit + tag back to the repo.
+# Publishes whatever Changesets has queued. Versioning is driven by the
+# changeset files contributors add with their PRs, so a breaking change ships
+# as a major instead of being auto-bumped to a patch.
 on:
   push:
     branches: [main]
 
-# contents:write lets the workflow push the version-bump commit + tag back.
-# id-token:write lets `npm publish --provenance` sign a build-provenance
-# attestation (supply-chain transparency). Drop the id-token line and the
-# `--provenance` flag below if you don't want provenance.
 permissions:
   contents: write
+  pull-requests: write
   id-token: write
 
 concurrency:
@@ -20,45 +18,36 @@ concurrency:
 
 jobs:
   release:
-    # Skip the run that the workflow's own version-bump commit creates.
-    # (Pushes made with GITHUB_TOKEN don't re-trigger workflows, but the
-    # [skip ci] guard also covers manual pushes of release commits.)
-    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
           registry-url: "https://registry.npmjs.org"
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npx publint
 
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm test
-
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Bump patch version
-        run: npm version patch -m "chore(release): v%s [skip ci]"
-
-      - name: Publish to npm
-        run: npm publish --provenance --access public
+      # Opens (or updates) a "Version Packages" PR when changesets are pending;
+      # publishes when that PR is merged.
+      - name: Version or publish
+        uses: changesets/action@v1
+        with:
+          version: npm run changeset:version
+          publish: npm run changeset:publish
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Push commit and tag
-        run: git push --follow-tags

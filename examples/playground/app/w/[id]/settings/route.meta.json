@@ -1,0 +1,5 @@
+{
+  "title": "Settings",
+  "requiresAuth": true,
+  "roles": ["owner", "admin"]
+}

@@ -1,15 +1,15 @@
-# next-smart-router — Documentation
+# next-smart-router docs
 
-Filesystem-style routing helpers for the Next.js App Router.
+| Page                                    | What it covers                                                                    |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| [Getting started](./getting-started.md) | Install, generate a manifest, initialize, first navigation                        |
+| [Concepts](./concepts.md)               | The manifest, specificity, the registry vs. `createRouter`, the transfer contract |
+| [API reference](./api-reference.md)     | Every export, grouped by area                                                     |
+| [Recipes](./recipes.md)                 | Nav menus, filters, breadcrumbs, middleware auth, handovers, guards               |
+| [CLI](./cli.md)                         | `generate`, `--watch`, `--check`, the plugin                                      |
+| [Motivation](./motivation.md)           | Why filesystem-style routing helpers                                              |
+| [FAQ](./faq.md)                         | Server vs. client, Suspense, stale manifests, comparisons                         |
+| [Migrating to 1.0](./migration-1.0.md)  | Breaking changes and corrected behaviour                                          |
 
-| Guide | What's inside |
-| --- | --- |
-| [Why / Motivation](./motivation.md) | The problems it solves, when to use it, and known trade-offs. |
-| [Getting Started](./getting-started.md) | Install, generate a manifest, initialize, first navigation. |
-| [Concepts](./concepts.md) | The filesystem mental model, the route registry, matching rules. |
-| [API Reference](./api-reference.md) | Every export, signature, and return type. |
-| [CLI](./cli.md) | The `next-smart-router generate` command and manifest formats. |
-| [Recipes](./recipes.md) | Breadcrumbs UI, tabs, guarded back, cross-domain redirects, testing. |
-| [FAQ & Troubleshooting](./faq.md) | Common errors, SSR notes, HMR, gotchas. |
-
-New here? Read [Why / Motivation](./motivation.md), then [Getting Started](./getting-started.md).
+The [README](../README.md) is the fastest tour. The
+[example app](../examples/playground) is the same tour, running.

@@ -1,91 +1,117 @@
-# FAQ & Troubleshooting
+# FAQ
 
-## `getParams()` returns `{}`
+## Where exactly do I call `initializeSmartRouter`?
 
-The pathname didn't match any registered route. Check:
+In a module that **both** Next module graphs import. Next builds the server and
+the client separately, so module-level state initializes once per graph — a call
+that only runs in a client provider leaves Server Components with an empty
+registry.
 
-1. Did you call `initializeSmartRouter({ routes })` before `getParams`?
-2. Is the manifest current? Regenerate with the CLI.
-3. Does the route pattern actually exist (e.g. `/workspaces/[id]`, not
-   `/workspace/[id]`)?
+The reliable pattern is a small setup module imported from the root layout; see
+[Getting started](./getting-started.md#2-initialize).
 
-Verify what's registered:
+If a matcher runs first, the registry holds only `"/"`. The library warns once
+in development rather than returning plausible-but-wrong answers.
 
-```ts
-import { getRoutes } from "next-smart-router";
-console.log([...getRoutes()]);
+## Why do my Server Components see no routes?
+
+Same reason — the registry was initialized in a client-only module. Either move
+the call somewhere both graphs reach, or use `createRouter(ROUTES)`, which
+carries its routes explicitly and has no initialization step at all. In Server
+Components and middleware, `createRouter` is usually the better shape.
+
+## Why does my build fail with "useSearchParams() should be wrapped in a suspense boundary"?
+
+`useQueryState`, `useQueryStates` and `useRoute` read `useSearchParams()` so
+their values are correct during SSR. That opts the page into Next's
+client-rendering bailout, which fails a **static** prerender unless the tree is
+wrapped in `<Suspense>`. This is Next's own rule for `useSearchParams`, not
+something the library adds.
+
+```tsx
+<Suspense fallback={null}>
+  <Filters />
+</Suspense>
 ```
 
-## `Error: pathname is required in non-browser environments`
+The transfer hooks — `useRouteState`, `useRouteStateOr`, `useClearRouteState`,
+`useFlash` — deliberately do _not_ touch `useSearchParams()`, because they are
+`undefined` on the server by contract and have nothing to gain from it.
 
-`getParams()` reads `window.location.pathname` on the client. On the server
-(RSC, middleware, tests) there's no `window`, so pass it explicitly:
+## My manifest keeps going stale.
 
-```ts
-getParams<["id"]>({ pathname: "/workspaces/42" });
-```
+Use the plugin. `withSmartRouter` generates on `next build` and watches during
+`next dev`, so there is nothing to remember. Add
+`next-smart-router generate --check` to CI to catch it if someone bypasses it.
 
-## `useSmartRouter` throws about `useRouter`/hooks
+## Won't `--watch` fight with Next's own file watcher?
 
-The hook uses `next/navigation`, which requires:
+No. `generate` compares the serialized output to the file on disk and skips the
+write when they match, so it cannot touch a file inside the project, trigger a
+recompile and run again.
 
-- A **Client Component** (`"use client"` at the top of your file).
-- Running inside the Next.js App Router.
+## Does `useRouteState` survive a refresh?
 
-The published `next-smart-router/react` entry already carries the `"use client"`
-directive, so importing it from a Server Component and rendering it there will
-fail — call it from your own client component.
+With the default `session` strategy, yes. It does **not** survive a new tab or a
+shared link, and it never should be required — the destination screen must
+render correctly without it. See [the transfer
+contract](./concepts.md#the-transfer-contract).
 
-## Nothing matches after adding a new route
+## Why does `useRouteState` return `undefined` on the first render?
 
-The manifest is a build-time snapshot. Adding a folder under `app/` does **not**
-update it automatically. Regenerate (or wire `predev`/`prebuild` — see
-[CLI](./cli.md#keep-it-in-sync)).
+It reads through `useSyncExternalStore` with an explicit `undefined` server
+snapshot. Reading `sessionStorage` during render would produce a hydration
+mismatch — the server renders nothing, the client renders a value. The empty
+first render is the correct behaviour, and it resolves immediately after
+hydration.
 
-## Do I have to use the CLI?
+## Can I intercept the browser back button?
 
-No. The registry accepts any iterable of patterns:
+Partly. `useNavigationGuard` fully covers `nav.push` / `replace` / `fsBack` and
+`<SmartLink>` clicks. Hard navigation and tab close fall back to the browser's
+`beforeunload` prompt, which ignores your message. The back button needs a
+`history.pushState` sentinel, enabled with `interceptBrowserBack: true` — off by
+default because it makes the history stack one entry deeper than the user
+expects.
 
-```ts
-import { setRoutes } from "next-smart-router";
-setRoutes(["/", "/about", "/blog/[slug]"]);
-```
+## Does this work with `basePath` / `trailingSlash` / i18n?
 
-The CLI is just a convenient, convention-accurate way to produce that list.
-
-## `initializeSmartRouter` seems to run twice / not re-run
-
-It's idempotent by design — the second call is a no-op. For HMR or tests where
-you *want* it to re-run, pass `{ force: true }`, or call `resetSmartRouter()`
-first.
-
-## Relative navigation doesn't hit the registry
-
-Correct — `resolvePath` (used by `push`/`replace`) is pure path math and does
-**not** validate against the registry. If you want to guarantee the target
-exists, check it yourself:
+Yes. Pass them to `initializeSmartRouter` (or `createRouter`) and every entry
+point strips them before matching and re-applies them on output.
 
 ```ts
-import { matchRoute, resolvePath } from "next-smart-router";
-
-const target = resolvePath(pathname, "../settings");
-if (matchRoute(target)) router.push(target);
+initializeSmartRouter({ routes: ROUTES, basePath: "/app", locales: ["en", "fr"] });
 ```
 
-## Catch-all edge cases
+## Do I have to use typed routes?
 
-- `[...slug]` requires **at least one** segment — `/docs` does *not* match
-  `/docs/[...slug]`.
-- `[[...slug]]` matches **zero or more** — `/files` *does* match
-  `/files/[[...path]]`.
+No. `Route` is `string` until you augment `Register`, so everything works
+untyped. Registering the generated union is what turns a folder rename from a
+silent `undefined` into a compile error.
 
-## ESM / CJS
+## Is `smartHistory` safe to use?
 
-The package ships both. `import` resolves to ESM, `require` to CJS, and types
-are provided for each. No configuration needed.
+It's deprecated. A module-level instance holds one user's navigation stack, and
+on a Node server every concurrent request shares it. Use `createSmartHistory()`
+or `<SmartHistoryProvider>` instead.
 
-## Does it work outside Next.js?
+## How does this compare to…
 
-The core entry (`next-smart-router`) has no Next/React imports and works
-anywhere — Remix, plain React, Node scripts, tests. Only
-`next-smart-router/react` (`useSmartRouter`) is Next-specific.
+**Next's built-in `typedRoutes`** — types `<Link href>` and `router.push`.
+That's a subset of what the manifest enables here (params, breadcrumbs, trees,
+`fsBack`, middleware metadata), and the two coexist fine.
+
+**`nuqs`** — a focused, excellent query-state library. If query params are all
+you need, it's the smaller dependency. The overlap here exists so query state
+composes with sticky params, relative navigation and `SmartLink`.
+
+**`next-safe-navigation` / `declarative-routing`** — schema-first: you declare
+routes in code and derive types. This is filesystem-first: the `app/` directory
+stays the source of truth and the manifest is generated from it. Pick based on
+which one you want to be authoritative.
+
+## Is the core entry safe on the edge?
+
+Yes. `next-smart-router` imports neither `react` nor `next` — it's pure string
+manipulation over a route list. `createRouter` in particular is designed for
+`middleware.ts`.

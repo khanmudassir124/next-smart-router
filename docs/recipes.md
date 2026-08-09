@@ -1,181 +1,233 @@
 # Recipes
 
-Practical patterns built on the [API](./api-reference.md).
-
-## Breadcrumbs component
+## A tab bar that writes itself
 
 ```tsx
 "use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { getBreadcrumbs } from "next-smart-router";
+import { SmartLink, useChildren } from "next-smart-router/react";
 
-export function Breadcrumbs() {
-  const pathname = usePathname();
-  const crumbs = getBreadcrumbs(pathname);
+export function WorkspaceTabs() {
+  const tabs = useChildren("./");
 
   return (
-    <nav aria-label="Breadcrumb">
-      <ol style={{ display: "flex", gap: 8 }}>
-        <li><Link href="/">Home</Link></li>
-        {crumbs.map((c, i) => (
-          <li key={c.href}>
-            <span aria-hidden> / </span>
-            {i === crumbs.length - 1 ? (
-              <span aria-current="page">{c.label}</span>
-            ) : (
-              <Link href={c.href}>{c.label}</Link>
-            )}
-          </li>
-        ))}
-      </ol>
+    <nav>
+      {tabs.map((tab) => (
+        <SmartLink key={tab.path} href={`./${tab.segment}`} activeClassName="on">
+          {tab.meta?.title ?? tab.segment}
+        </SmartLink>
+      ))}
     </nav>
   );
 }
 ```
 
-## Relative tabs within a section
+Add `app/w/[id]/billing/page.tsx` and the tab appears. Hide one with
+`{ "hidden": true }` in its `route.meta.json`.
+
+## A filter bar that doesn't hammer the server
 
 ```tsx
-"use client";
-import { useSmartRouter } from "next-smart-router/react";
+const [{ tab, page }, setFilters] = useQueryStates({
+  tab: parseAsEnum(["overview", "members"]).default("overview"),
+  page: parseAsInt.default(1).clearOnDefault(),
+});
 
-const TABS = ["overview", "members", "settings"];
+// Server reads these, so a real navigation is correct — but ONE of them.
+setFilters({ tab: "members", page: 1 });
 
-export function WorkspaceTabs() {
-  const router = useSmartRouter();
-  // from /workspaces/42/settings -> push("../overview") = /workspaces/42/overview
+// Client-only, so skip the round-trip entirely.
+const [q, setQ] = useQueryState("q", parseAsString.default(""), {
+  shallow: true,
+  throttleMs: 200,
+});
+```
+
+Wrap the component in `<Suspense>` if its page is statically prerendered — the
+same rule as calling `useSearchParams()` directly.
+
+## Sharing one search-param definition
+
+```ts
+// app/w/[id]/search-params.ts
+export const workspaceSearch = defineSearchParams({
+  tab: parseAsEnum(["overview", "members"]).default("overview"),
+  page: parseAsInt.default(1),
+});
+```
+
+```tsx
+// page.tsx (server)
+const { tab, page } = workspaceSearch.parse(searchParams);
+
+// controls.tsx (client)
+const [{ tab, page }, set] = useQueryStates(workspaceSearch);
+```
+
+Next forbids arbitrary named exports from `page.tsx`, so the definition needs
+its own module anyway — which is where it belongs.
+
+## Breadcrumbs with real names
+
+```tsx
+const workspace = useWorkspace(id);
+
+const crumbs = getBreadcrumbs(pathname, {
+  labels: { [`/w/${id}`]: workspace.name },
+  format: "title",
+  includeRoot: true,
+});
+
+return crumbs.map((crumb) =>
+  crumb.isCurrent ? (
+    <span key={crumb.href} aria-current="page">
+      {crumb.label}
+    </span>
+  ) : (
+    <SmartLink key={crumb.href} href={crumb.href}>
+      {crumb.label}
+    </SmartLink>
+  )
+);
+```
+
+`labelFor` gives full control, and `unmatched: "text"` keeps ancestors that
+aren't routable as plain text instead of dropping them.
+
+## Auth declared next to the page
+
+```json
+// app/w/[id]/settings/route.meta.json
+{ "title": "Settings", "requiresAuth": true, "roles": ["owner", "admin"] }
+```
+
+```ts
+// middleware.ts
+import { createRouter } from "next-smart-router";
+import { ROUTES, META } from "./route-manifest";
+
+const router = createRouter(ROUTES, { meta: META });
+
+export function middleware(request: NextRequest) {
+  const match = router.match(request.nextUrl.pathname);
+  if (!match?.meta?.requiresAuth) return NextResponse.next();
+
+  const session = getSession(request);
+  if (!session) {
+    const next = encodeURIComponent(request.nextUrl.pathname);
+    return NextResponse.redirect(new URL(`/login?next=${next}`, request.url));
+  }
+  if (match.meta.roles && !match.meta.roles.includes(session.role)) {
+    return NextResponse.rewrite(new URL("/403", request.url));
+  }
+}
+```
+
+Add a protected folder and it's protected. Delete it and the rule goes with it.
+
+## Handing a cart to checkout
+
+```tsx
+// Screen A
+nav.push("/checkout", {
+  state: { cart },
+  flash: { type: "success", message: "Cart saved" },
+});
+
+// Screen B — note the fallback is not optional
+export function CheckoutSummary({ id }: { id: string }) {
+  const state = useRouteState<{ cart: Cart }>();
+
+  const { data: cart } = useQuery({
+    queryKey: ["cart", id],
+    queryFn: () => fetchCart(id),
+    initialData: state?.cart,
+  });
+
+  return <Lines cart={cart} />;
+}
+```
+
+## Flash after a Server Action redirect
+
+The client never runs between the action and the redirect, so the message has
+to ride in a cookie:
+
+```ts
+"use server";
+export async function createWorkspace(form: FormData) {
+  const workspace = await db.workspaces.create(/* … */);
+  cookies().set(
+    "nsr:flash",
+    JSON.stringify({
+      v: 1,
+      t: Date.now(),
+      data: { type: "success", message: "Workspace created" },
+    })
+  );
+  redirect(`/w/${workspace.id}`);
+}
+```
+
+Read it in a Server Component and hand it to `writeFlash` on the client, or
+render the toast directly — `useFlash()` covers the client-navigation half.
+
+## Blocking navigation on a dirty form
+
+```tsx
+useNavigationGuard({ when: form.formState.isDirty });
+
+// or, with your own dialog
+useNavigationGuard({
+  when: form.formState.isDirty,
+  confirm: () => showConfirmDialog("Discard changes?"),
+});
+```
+
+Covers `nav.push` / `replace` / `fsBack` and `<SmartLink>` clicks fully; hard
+navigation and tab close fall back to the browser's `beforeunload` prompt. The
+back button needs `interceptBrowserBack: true`, which is off by default because
+the sentinel technique it requires makes the history stack one entry deeper
+than the user expects.
+
+## Analytics grouped by pattern
+
+```ts
+subscribeNavigation((event) => {
+  analytics.page(event.route, { ...event.params, ...event.search });
+});
+```
+
+`event.route` is `/w/[id]/settings`, not `/w/8fa2…/settings` — ten thousand
+workspaces produce one row, not ten thousand.
+
+## A modal wizard with its own back stack
+
+```tsx
+<SmartHistoryProvider initial="/step-1">
+  <Wizard />
+</SmartHistoryProvider>;
+
+function WizardNav() {
+  const history = useSmartHistory();
   return (
-    <div>
-      {TABS.map((tab) => (
-        <button key={tab} onClick={() => router.push(`../${tab}`)}>
-          {tab}
-        </button>
-      ))}
-    </div>
+    <button disabled={!history.canGoBack} onClick={history.back}>
+      Back ({history.length})
+    </button>
   );
 }
 ```
 
-## A "back" button that never 404s
+Scoped to the subtree, so it can't be shared across requests the way a
+module-level singleton would be.
+
+## Only render a link if the route exists
 
 ```tsx
-"use client";
-import { useSmartRouter } from "next-smart-router/react";
+const nav = useSmartRouter();
 
-export function UpButton() {
-  const router = useSmartRouter();
-  // From a deep dynamic page, jumps to the nearest real ancestor route.
-  return <button onClick={() => router.fsBack()}>← Back</button>;
+{
+  nav.canNavigate("../billing") && <SmartLink href="../billing">Billing</SmartLink>;
 }
 ```
 
-## Typed params with coercion & assertion
-
-```ts
-import { getParams } from "next-smart-router";
-
-// route: /workspaces/[id]/invoices/[invoiceId]
-export function useInvoiceParams() {
-  return getParams<["id", "invoiceId"], { id: number; invoiceId: number }>({
-    coerce: { id: Number, invoiceId: Number },
-    assert: ["id", "invoiceId"],
-  });
-}
-// -> { id: number, invoiceId: number }
-```
-
-## Server-side params
-
-On the server there's no `window`, so pass `pathname` explicitly:
-
-```ts
-// app/workspaces/[id]/page.tsx  (Server Component)
-import { getParams } from "next-smart-router";
-
-export default function Page({ params }: { params: { id: string } }) {
-  // Prefer Next's own `params` in Server Components; getParams shines when you
-  // only have a raw pathname (middleware, edge, logging, etc.):
-  const parsed = getParams<["id"]>({ pathname: `/workspaces/${params.id}` });
-  return <div>{parsed.id}</div>;
-}
-```
-
-## Cross-domain redirect to a safe static route
-
-```ts
-import { getNearestStaticRoute } from "next-smart-router";
-
-function switchWorkspaceDomain(targetHost: string) {
-  // Drop any dynamic ids from the current path — they won't be valid elsewhere.
-  const safePath = getNearestStaticRoute(window.location.pathname);
-  window.location.href = `https://${targetHost}${safePath}`;
-}
-```
-
-## Modal flow with an in-memory stack
-
-```ts
-import { smartHistory } from "next-smart-router";
-
-smartHistory.init("/checkout");
-smartHistory.push("/checkout/shipping");
-smartHistory.push("/checkout/payment");
-
-smartHistory.back();     // "/checkout/shipping"
-smartHistory.current();  // "/checkout/shipping"
-```
-
-## Mixing smart and native navigation
-
-The raw `next/navigation` router is always on `.router`, so you can mix relative
-smart navigation with native options and methods in one place:
-
-```tsx
-"use client";
-import { useSmartRouter } from "next-smart-router/react";
-
-export function SaveBar() {
-  const nav = useSmartRouter();
-
-  const save = async () => {
-    await saveDraft();
-    nav.router.refresh();            // re-fetch server components
-    nav.push("../preview");          // then move relatively
-  };
-
-  return (
-    <div>
-      <button onClick={save}>Save</button>
-      {/* native options like scroll are available via .router */}
-      <button onClick={() => nav.router.push("/", { scroll: false })}>Home</button>
-    </div>
-  );
-}
-```
-
-Or import the native hooks directly from the same entry:
-
-```ts
-import { useRouter, useSearchParams } from "next-smart-router/react";
-```
-
-## Testing
-
-Because the registry is read lazily, tests can (re)initialize freely:
-
-```ts
-import { beforeEach, expect, it } from "vitest";
-import { initializeSmartRouter, getParams } from "next-smart-router";
-
-beforeEach(() => {
-  initializeSmartRouter({
-    routes: new Set(["/", "/workspaces/[id]"]),
-    force: true, // re-init between tests
-  });
-});
-
-it("extracts id", () => {
-  expect(getParams<["id"]>({ pathname: "/workspaces/42" }).id).toBe("42");
-});
-```
+Or navigate defensively: `nav.pushIfExists("../billing", { fallback: "../" })`.
