@@ -28,16 +28,21 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           registry-url: "https://registry.npmjs.org"
 
       # Publishing happens over OIDC trusted publishing — no NPM_TOKEN. That
-      # needs npm >= 11.5.1, and Node 20 bundles npm 10.x, so the runner's npm
-      # is upgraded explicitly rather than left to whatever Node ships.
+      # needs npm >= 11.5.1, and neither Node 20 nor 22 bundles one, so the
+      # runner's npm is upgraded explicitly.
+      #
+      # Pinned to ^11 rather than @latest: npm 12 requires a newer Node than
+      # this job runs, so `npm install -g npm@latest` fails outright on the
+      # engine check. Raising this range means raising node-version with it.
       - name: Use an npm that supports trusted publishing
         run: |
-          npm install -g npm@latest
+          npm install -g npm@^11 --no-fund --no-audit
+          node --version
           npm --version
 
       - run: npm ci
