@@ -36,6 +36,12 @@ Every item here was reproduced against 0.1.1 and now has a regression test.
 - **CLI: `pageExtensions` was ignored** and `page.mdx` was never found.
 - **CLI: the manifest was rewritten unconditionally**, which would have become a
   rebuild loop under watch mode.
+- **CLI: the binary did nothing when invoked by its own name on Linux/macOS.**
+  npm's bin entry there is a symlink named `next-smart-router`, so a guard
+  keyed on `process.argv[1]` ending in `bin.js` never matched and `generate`
+  exited 0 having written nothing. (Windows was unaffected — its shim is a
+  `.cmd` that calls `node …in.js`.) The binary now always runs, and the
+  suite spawns it under both filenames.
 
 ### Added
 

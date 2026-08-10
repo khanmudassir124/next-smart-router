@@ -171,7 +171,12 @@ export function main(argv: string[] = process.argv.slice(2)): void {
   }
 }
 
-// Only run when invoked as the CLI, so the module stays importable in tests.
-if (process.argv[1] && /bin(\.[cm]?js|\.ts)?$/.test(process.argv[1])) {
-  main();
-}
+// This module is only ever the executable, so it always runs.
+//
+// It previously guarded on `process.argv[1]` matching /bin\.js$/ "so the module
+// stays importable in tests". That silently broke the real CLI: npm's bin entry
+// on Linux and macOS is a symlink named `next-smart-router`, so argv[1] never
+// matched and `generate` exited 0 having done nothing. (Windows was fine — its
+// shim is a .cmd that invokes `node …\bin.js`.) Test the built binary by
+// spawning it, not by importing this file.
+main();

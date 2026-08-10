@@ -51,8 +51,12 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
-      - run: npm run test:coverage
+
+      # Build BEFORE testing: the binary tests spawn dist/cli/bin.js and skip
+      # themselves when it is missing, so testing first would silently lose the
+      # coverage that catches a CLI which runs under one filename but not another.
       - run: npm run build
+      - run: npm run test:coverage
 
       # Catches the "CJS consumers get ESM type declarations" class of bug.
       - run: npx publint
@@ -79,8 +83,17 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm install --no-save /tmp/next-smart-router-*.tgz
+          # Invoked by its bin name on purpose: that is how a consumer runs it,
+          # and it exercises the npm symlink shim rather than a direct path.
           # The manifest is generated, not tracked — tsc needs it to exist
           # before `next build` (which would generate it) ever runs.
           npx next-smart-router generate --app-dir app --out route-manifest.ts
+
+          # Fail here, not thirty lines later inside tsc, if the CLI no-opped.
+          test -f route-manifest.ts || {
+            echo "::error::next-smart-router generate produced no manifest"
+            exit 1
+          }
+
           npx tsc --noEmit
           npx next build

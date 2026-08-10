@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -5,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { collectRoutes, generateRoutes } from "../src/cli/generate-routes";
 
+const root = path.resolve(__dirname, "..");
 const temporaries: string[] = [];
 
 afterEach(() => {
@@ -197,5 +199,52 @@ describe("generateRoutes", () => {
 
     const result = generateRoutes({ appDir, out, log: false });
     expect(result.conflicts.map((c) => c.kind)).toContain("param-name-mismatch");
+  });
+});
+
+/**
+ * The built binary, invoked the way npm actually invokes it.
+ *
+ * npm's bin entry on Linux and macOS is a symlink named after the command, so
+ * `process.argv[1]` is `…/node_modules/.bin/next-smart-router` — not
+ * `…/bin.js`. A guard keyed on the filename therefore passed on Windows (whose
+ * shim is a .cmd calling `node …in.js`) and silently no-opped everywhere
+ * else. These spawn the binary under both names to keep that honest.
+ */
+describe("built binary", () => {
+  const dist = path.join(root, "dist", "cli", "bin.js");
+  const built = fs.existsSync(dist);
+  const runIfBuilt = built ? it : it.skip;
+
+  function runAs(filename: string, args: string[], cwd: string) {
+    const copy = path.join(cwd, filename);
+    fs.copyFileSync(dist, copy);
+    return execFileSync(process.execPath, [copy, ...args], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  }
+
+  runIfBuilt("generates when invoked by its npm bin name, not just as bin.js", () => {
+    const appDir = writeFixture({ "page.tsx": "", "w/[id]/page.tsx": "" });
+    const cwd = path.dirname(appDir);
+
+    for (const name of ["bin.js", "next-smart-router"]) {
+      const out = path.join(cwd, `manifest-${name}.ts`);
+      runAs(name, ["generate", "--app-dir", appDir, "--out", out], cwd);
+
+      expect(fs.existsSync(out), `invoked as "${name}"`).toBe(true);
+      expect(fs.readFileSync(out, "utf8")).toContain('"/w/[id]"');
+    }
+  });
+
+  runIfBuilt("prints its version under either name", () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "nsr-bin-"));
+    temporaries.push(cwd);
+
+    for (const name of ["bin.js", "next-smart-router"]) {
+      expect(runAs(name, ["--version"], cwd).trim()).toMatch(/^\d+\.\d+\.\d+/);
+    }
   });
 });
