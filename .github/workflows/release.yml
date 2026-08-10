@@ -32,6 +32,14 @@ jobs:
           cache: npm
           registry-url: "https://registry.npmjs.org"
 
+      # Publishing happens over OIDC trusted publishing — no NPM_TOKEN. That
+      # needs npm >= 11.5.1, and Node 20 bundles npm 10.x, so the runner's npm
+      # is upgraded explicitly rather than left to whatever Node ships.
+      - name: Use an npm that supports trusted publishing
+        run: |
+          npm install -g npm@latest
+          npm --version
+
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
@@ -50,9 +58,10 @@ jobs:
           title: "chore(release): version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Left in place so setting the secret later Just Works. While it is
+          # unset, the action reports "No NPM_TOKEN found, but OIDC is
+          # available" and authenticates via trusted publishing instead, which
+          # attaches provenance on its own — so NPM_CONFIG_PROVENANCE is not
+          # set here. (`changeset publish` has no --provenance flag; it accepts
+          # only --tag, --otp and --no-git-tag.)
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # `changeset publish` takes no --provenance flag (only --tag, --otp,
-          # --no-git-tag); it shells out to `npm publish`, which reads this.
-          # Redundant but harmless when publishing via OIDC trusted publishing,
-          # where provenance is attached automatically.
-          NPM_CONFIG_PROVENANCE: true
