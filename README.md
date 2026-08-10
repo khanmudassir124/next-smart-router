@@ -1,12 +1,28 @@
 # next-smart-router
 
+[![npm version](https://img.shields.io/npm/v/next-smart-router.svg)](https://www.npmjs.com/package/next-smart-router)
+[![npm downloads](https://img.shields.io/npm/dm/next-smart-router.svg)](https://www.npmjs.com/package/next-smart-router)
+[![license](https://img.shields.io/npm/l/next-smart-router.svg)](./LICENSE)
+
 A routing layer for the Next.js App Router, built on one idea: your `app/`
 directory already describes every route in the application, so the router
 should be able to answer questions about it.
 
-Relative navigation. Typed routes and params. Query params as state. Data
-handed from one screen to the next. Breadcrumbs, route trees, back that never
-404s — all derived from a manifest generated out of the filesystem.
+Think of your routes like a Unix filesystem — navigate with `../` and `./`,
+walk up to the nearest real route, list a route's children — and treat the URL
+as state you can read and write with types.
+
+- 🧭 **Relative navigation** — `nav.push("../settings")`, in code _and_ in markup
+- 🏷️ **Typed routes & params** — inferred from the pattern, checked at compile time
+- 🔗 **Query params as state** — `useQueryState`, batched writes, optional shallow
+- 📌 **Sticky params** — `locale` and `utm_*` follow every navigation, `page` doesn't
+- 📦 **Screen-to-screen data** — hand a payload to the next screen, safely
+- 🌳 **Route tree** — nav menus that write themselves from the filesystem
+- 🍞 **Breadcrumbs** — real ancestors, decoded, with labels you control
+- ⬆️ **Safe back** — `fsBack()` lands on the nearest existing route, never a 404
+- 🛡️ **Guards, events, devtools** — unsaved-changes blocking, analytics by pattern
+- 🔌 **Native escape hatch** — the raw `next/navigation` router is always on `.router`
+- 🪶 **Zero runtime deps** — `next` and `react` are optional peers
 
 ```bash
 npm install next-smart-router
@@ -271,6 +287,81 @@ patterns also matched but lost.
 
 ---
 
+## vs. Next's `useRouter`
+
+`useSmartRouter` is a **thin superset** of `next/navigation`'s `useRouter`. It
+keeps every native method and adds the pieces `useRouter` leaves to you. The raw
+Next router is always on `.router`, so you lose nothing by switching.
+
+### Method-by-method
+
+|                                        | Next `useRouter()`       | `useSmartRouter()`                                         |
+| -------------------------------------- | ------------------------ | ---------------------------------------------------------- |
+| `push(href)`                           | absolute href only       | **relative-aware** (`"../settings"`, `"./new"`) + absolute |
+| `replace(href)`                        | absolute href only       | **relative-aware** + absolute                              |
+| `prefetch(href)`                       | absolute href only       | **relative-aware** + absolute                              |
+| `back()` / `forward()` / `refresh()`   | ✅                       | ✅ (delegates)                                             |
+| navigation options                     | `{ scroll }`             | `{ scroll, query, keepQuery, state, flash, shallow }`      |
+| current pathname                       | separate `usePathname()` | `.pathname` included                                       |
+| referential stability                  | n/a                      | every method memoized — safe as an effect dep              |
+| the native router                      | —                        | `.router` (the exact `useRouter()` instance)               |
+| **`fsBack()` / `up(n)`**               | ❌                       | up to the nearest _real_ route — never 404                 |
+| **`sibling()` / `child()` / `root()`** | ❌                       | relative navigation vocabulary                             |
+| **`canNavigate()` / `pushIfExists()`** | ❌                       | check the manifest before moving                           |
+
+### Things `useRouter` doesn't do at all
+
+`useRouter` is navigation-only. These have no equivalent in `next/navigation`,
+and are why the library exists:
+
+| Need                                 | With `next/navigation`                                                     | With next-smart-router                                  |
+| ------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **Move relative to where you are**   | Rebuild the absolute path from `usePathname()` and normalize `..` by hand. | `nav.push("../settings")`                               |
+| **Relative hrefs in markup**         | `<Link>` is absolute-only.                                                 | `<SmartLink href="../members">`                         |
+| **A back button that never 404s**    | `router.back()` can leave your app or land on a deleted route.             | `nav.fsBack()` walks up to the nearest _real_ route.    |
+| **Build an href from a pattern**     | Template literals, and remember to encode.                                 | `buildHref("/w/[id]", { id: 42 })` — typed and encoded. |
+| **Active-link state**                | Hand-rolled `startsWith`, which matches `/settings-v2`.                    | `isActive()` — prefix-safe and pattern-aware.           |
+| **Write a query param**              | Rebuild `URLSearchParams`, re-concat the pathname, pick a history mode.    | `useQueryState("page", parseAsInt.default(1))`          |
+| **Change several params at once**    | Three setters, three navigations, two wrong renders.                       | `useQueryStates({...})` — one navigation.               |
+| **Carry `locale` across every link** | Remember it at every call site and every `<Link>`.                         | `stickyQuery: ["locale"]`, declared once.               |
+| **Hand data to the next screen**     | A global store that outlives the navigation, or refetch.                   | `nav.push(href, { state })` + `useRouteState()`         |
+| **Breadcrumbs**                      | Hand-write trail logic per layout; it drifts from real routes.             | `getBreadcrumbs(pathname)` — matchable ancestors only.  |
+| **A menu from the filesystem**       | Maintain an array beside the folders.                                      | `useChildren("./")`                                     |
+| **Read params away from a page**     | `useParams` only works inside the route tree.                              | `getParams("/w/[id]", { pathname })` anywhere.          |
+| **Route metadata in middleware**     | A regex matcher array that drifts.                                         | `route.meta.json` + `createRouter().match()`            |
+| **Block navigation on a dirty form** | `router.events` was removed and never replaced.                            | `useNavigationGuard({ when })`                          |
+| **Analytics by route, not by URL**   | One row per concrete URL.                                                  | `subscribeNavigation()` gives the pattern.              |
+| **Know all your routes at runtime**  | No registry of route patterns.                                             | Generated manifest + registry, or `createRouter()`.     |
+
+### Side by side
+
+```ts
+// next/navigation — you assemble the target yourself
+import { useRouter, usePathname } from "next/navigation";
+const router = useRouter();
+const pathname = usePathname(); // /workspaces/42/overview
+router.push(pathname.replace(/\/[^/]+$/, "/settings"));
+
+// next-smart-router — relative, plus the native router still on hand
+import { useSmartRouter } from "next-smart-router/react";
+const nav = useSmartRouter();
+nav.push("../settings");
+nav.router.refresh(); // native escape hatch
+```
+
+### When plain `useRouter` is enough
+
+Genuinely — don't add a dependency you don't need:
+
+- You only ever navigate with absolute paths, and never read the query.
+- You only need params inside a page or layout; Next's `useParams` covers that.
+- You want routes checked at _compile_ time only → Next's `typedRoutes` is
+  built in. This library also checks at compile time once you register the
+  route union, but it costs a generated manifest to get there.
+- Query params are your only pain point → [`nuqs`](https://nuqs.dev) is a
+  smaller, focused dependency. The overlap here exists so query state composes
+  with relative navigation, sticky params and `SmartLink`.
+
 ## A note on Suspense
 
 `useQueryState`, `useQueryStates` and `useRoute` read `useSearchParams()` so
@@ -284,6 +375,56 @@ component using them.
 nothing to gain from the router's snapshot.
 
 ---
+
+## Limitations & known trade-offs
+
+Worth knowing before adopting. Details in [FAQ](./docs/faq.md) and
+[Concepts](./docs/concepts.md).
+
+- **The manifest is a build-time snapshot.** Add a route folder and it has to be
+  regenerated. The [plugin](./docs/cli.md#the-plugin) does this on `next dev`
+  and `next build` so you rarely think about it, but nothing updates the
+  registry at runtime on its own — and `--check` in CI is what catches drift.
+- **You must `initializeSmartRouter()` once, per module graph.** Next builds the
+  server and client separately, so a call that only runs in a client provider
+  leaves Server Components with an empty registry. It warns once in development
+  rather than failing quietly. `createRouter()` sidesteps this by carrying its
+  routes explicitly — prefer it in middleware and RSC.
+- **`resolvePath` is pure string math.** `push("../x")` resolves the path; it
+  does not verify the target exists. Use `nav.canNavigate(target)` or
+  `nav.pushIfExists(target, { fallback })` when you need certainty.
+- **Typed routes are opt-in.** Until you augment `Register` with the generated
+  union, `Route` is `string` and a typo in a pattern is a runtime `undefined`
+  rather than a compile error.
+- **Transfer state is never authoritative.** `useRouteState()` returns
+  `undefined` on the server render and on every cold entry — direct link,
+  refresh, shared URL. The destination screen must work without it; treat it as
+  a hydration hint, not a data source.
+- **`fsBack` walks the _path_, not browser history.** That is the point, and it
+  is deliberately not the same as pressing back — use `nav.back()` for that.
+- **Query hooks impose Next's Suspense rule.** `useQueryState`, `useQueryStates`
+  and `useRoute` read `useSearchParams()`, so a statically prerendered page
+  needs a `<Suspense>` boundary. The transfer hooks don't.
+- **Navigation guards can't fully catch the browser back button.** Library
+  navigations and `<SmartLink>` clicks are covered; hard navigation falls back
+  to `beforeunload`. Back needs `interceptBrowserBack`, off by default.
+- **Route metadata sidecars are JSON only.** `route.meta.json` is read
+  statically; a `route.meta.ts` would need a loader in the CLI.
+
+<details>
+<summary>Fixed in 1.0 — if you read this list before, three entries are gone</summary>
+
+- ~~First registered match wins; overlapping patterns are ambiguous.~~ Matching
+  now follows Next.js specificity (static > dynamic > catch-all > optional
+  catch-all), so `/docs/about` beats `/docs/[...slug]` deterministically.
+- ~~Runtime, not compile-time, param typing.~~ Register the generated `Route`
+  union and params are inferred from the pattern.
+- ~~Breadcrumb labels are raw slugs.~~ Decoded, with `labels`, `labelFor`,
+  `format` and `isCurrent`.
+
+See [docs/migration-1.0.md](./docs/migration-1.0.md).
+
+</details>
 
 ## API
 
@@ -401,6 +542,28 @@ repo.
 [CLI](./docs/cli.md) ·
 [FAQ](./docs/faq.md) ·
 [Migrating to 1.0](./docs/migration-1.0.md)
+
+## Contributing & releasing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the dev setup, project layout and
+the invariants worth knowing before changing the core.
+
+```bash
+npm install
+npm test          # 178 tests
+npm run build     # ESM + CJS + types, then re-adds "use client"
+npm run lint:package
+```
+
+Releases run on [Changesets](https://github.com/changesets/changesets), so the
+version bump follows the change instead of always being a patch:
+
+```bash
+npx changeset     # patch | minor | major + a one-line summary
+```
+
+Commit the generated file with your PR. On merge to `main`, CI publishes to npm
+via OIDC trusted publishing — there is no token to rotate.
 
 ## License
 
