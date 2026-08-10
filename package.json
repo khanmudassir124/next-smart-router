@@ -1,6 +1,6 @@
 {
   "name": "next-smart-router",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Routing layer for the Next.js App Router: relative navigation, typed routes and params, query-param state, cross-screen data transfer, breadcrumbs, route trees and safe back.",
   "type": "module",
   "license": "MIT",
@@ -23,7 +23,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "next-smart-router": "./dist/cli/bin.js"
+    "next-smart-router": "dist/cli/bin.js"
   },
   "exports": {
     ".": {
@@ -138,7 +138,6 @@
     "url": "https://github.com/khanmudassir124/next-smart-router/issues"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   }
 }

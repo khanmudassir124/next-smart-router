@@ -123,6 +123,11 @@ Every item here was reproduced against 0.1.1 and now has a regression test.
   `entries`, `subscribe` and a `maxLength` cap.
 - `exports` now declares per-condition types, so `require()` consumers get
   `index.d.cts` instead of the ESM declarations.
+- `bin` is declared as `dist/cli/bin.js`, not `./dist/cli/bin.js`. npm 11
+  rejects the `./` prefix and strips the entry from the published manifest, so
+  the tarball would have shipped with no executable at all — with a warning,
+  not an error. A test now asserts it, since `publint` and
+  `npm publish --dry-run` both pass either way.
 - CI runs on pull requests across Node 18/20/22 × Next 13.5/14/15, with lint,
   coverage, `publint`, and a tarball-install smoke test against a real example
   app. Releases are driven by Changesets, so a breaking change can't ship as a
