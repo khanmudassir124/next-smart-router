@@ -1,6 +1,6 @@
 {
   "name": "next-smart-router",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Routing layer for the Next.js App Router: relative navigation, typed routes and params, query-param state, cross-screen data transfer, breadcrumbs, route trees and safe back.",
   "type": "module",
   "license": "MIT",
