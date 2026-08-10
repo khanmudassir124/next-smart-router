@@ -1,6 +1,6 @@
 {
   "name": "next-smart-router",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "description": "Routing layer for the Next.js App Router: relative navigation, typed routes and params, query-param state, cross-screen data transfer, breadcrumbs, route trees and safe back.",
   "type": "module",
   "license": "MIT",
@@ -92,7 +92,7 @@
     "prepublishOnly": "npm run build",
     "changeset": "changeset",
     "changeset:version": "changeset version",
-    "changeset:publish": "changeset publish --provenance"
+    "changeset:publish": "changeset publish"
   },
   "peerDependencies": {
     "next": ">=13.0.0",
