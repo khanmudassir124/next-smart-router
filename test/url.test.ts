@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   applyBasePath,
+  buildHref,
   buildQuery,
+  createRouter,
   createParser,
   defineSearchParams,
   fsBackPathSafe,
+  getBreadcrumbs,
+  getNearestStaticRoute,
   initializeSmartRouter,
   matchRoute,
   mergeQuery,
@@ -22,6 +26,7 @@ import {
   parseQuery,
   pickQuery,
   resetSmartRouter,
+  resolvePath,
   selectQuery,
   splitUrl,
   withQuery,
@@ -232,5 +237,89 @@ describe("defineSearchParams", () => {
     expect(search.serialize({ tab: "members", page: 1 })).toBe("?tab=members");
     expect(search.serialize({ tab: "members", page: 3 })).toBe("?page=3&tab=members");
     expect(search.href("/w/42", { tab: "members" })).toBe("/w/42?tab=members");
+  });
+});
+
+describe("review regressions", () => {
+  it("a hash-only target keeps the current query, as a browser does", () => {
+    expect(resolvePath("/a/b?q=1", "#top")).toBe("/a/b?q=1#top");
+    // A query-only target still replaces the query.
+    expect(resolvePath("/a/b?q=1", "?x=2")).toBe("/a/b?x=2");
+  });
+
+  it("defineSearchParams().href merges onto an existing query and keeps the hash", () => {
+    const search = defineSearchParams({ page: parseAsInt.default(1) });
+
+    expect(search.href("/w?x=1", { page: 2 })).toBe("/w?page=2&x=1");
+    expect(search.href("/w#top", { page: 2 })).toBe("/w?page=2#top");
+  });
+
+  it("defineSearchParams().href survives being destructured", () => {
+    const { href } = defineSearchParams({ page: parseAsInt.default(1) });
+    expect(href("/w", { page: 3 })).toBe("/w?page=3");
+  });
+});
+
+describe("locales, basePath and trailingSlash on output", () => {
+  const ROUTES = ["/", "/w", "/w/[id]", "/w/[id]/members"];
+  const I18N = { locales: ["en", "fr"] } as const;
+
+  it("fsBackPathSafe and getNearestStaticRoute keep the locale", () => {
+    initializeSmartRouter({ routes: ROUTES, ...I18N, force: true });
+
+    expect(fsBackPathSafe("/fr/w/42/members")).toBe("/fr/w/42");
+    expect(fsBackPathSafe("/fr/w")).toBe("/fr");
+    expect(getNearestStaticRoute("/fr/w/42")).toBe("/fr/w");
+    // No locale in, none out.
+    expect(fsBackPathSafe("/w/42/members")).toBe("/w/42");
+  });
+
+  it("puts the locale inside basePath, and applies trailingSlash", () => {
+    initializeSmartRouter({
+      routes: ROUTES,
+      ...I18N,
+      basePath: "/app",
+      trailingSlash: true,
+      force: true,
+    });
+
+    expect(fsBackPathSafe("/app/fr/w/42/members")).toBe("/app/fr/w/42/");
+    expect(getNearestStaticRoute("/app/fr/w/42")).toBe("/app/fr/w/");
+  });
+
+  it("breadcrumb hrefs keep the locale and stay Next-relative", () => {
+    initializeSmartRouter({ routes: ROUTES, ...I18N, basePath: "/app", force: true });
+
+    const crumbs = getBreadcrumbs("/app/fr/w/42", {
+      includeRoot: true,
+      labels: { "/w/42": "Acme" }, // keyed by the bare href, as before
+    });
+
+    // No basePath: these are rendered with <Link>, which adds it.
+    expect(crumbs.map((c) => c.href)).toEqual(["/fr", "/fr/w", "/fr/w/42"]);
+    expect(crumbs[2].label).toBe("Acme");
+  });
+
+  it("createRouter agrees with the global functions", () => {
+    const router = createRouter(ROUTES, { ...I18N, basePath: "/app" });
+
+    expect(router.fsBack("/app/fr/w/42/members")).toBe("/app/fr/w/42");
+    expect(router.nearestStatic("/app/fr/w/42")).toBe("/app/fr/w");
+    expect(router.breadcrumbs("/app/fr/w/42").map((c) => c.href)).toEqual([
+      "/fr/w",
+      "/fr/w/42",
+    ]);
+  });
+
+  it("prefixes basePath even when a route starts with the same text", () => {
+    initializeSmartRouter({ routes: ["/docs/[slug]"], basePath: "/docs", force: true });
+    expect(buildHref("/docs/[slug]", { slug: "intro" })).toBe("/docs/docs/intro");
+
+    const router = createRouter(["/docs/[slug]"], { basePath: "/docs" });
+    expect(router.build("/docs/[slug]", { slug: "intro" })).toBe("/docs/docs/intro");
+  });
+
+  it("applyBasePath itself stays idempotent, as documented", () => {
+    expect(applyBasePath("/app/w", "/app")).toBe("/app/w");
   });
 });

@@ -7,6 +7,7 @@
 
 export {
   collectRoutes,
+  type FoundRoute,
   generateRoutes,
   type GenerateRoutesOptions,
   type GenerateResult,

@@ -1,0 +1,1515 @@
+{
+  "seed": 20260911,
+  "note": "Generated offline by NSR_REGEN_CORPUS=1. Every verdict verified against an exhaustive URL search at generation time. Do not hand-edit.",
+  "setsConsidered": 18135,
+  "cases": [
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/a/[x]", "/b/[...s]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/a/[[...s]]", "/b/[x]", "/b/[x]/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b", "/a/[x]/a", "/a/b/b", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b/a"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/b", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": [
+        "/[x]/a",
+        "/[x]/a/b",
+        "/a/[x]/[[...s]]",
+        "/b/[...s]",
+        "/b/[x]/[[...s]]"
+      ],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/b/[...s]", "/b/[x]/[[...s]]", "/b/[x]/b", "/b/a/b", "/b/b/a"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/b", "/a/b/[...s]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/a/[...s]", "/b/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": [
+        "/[x]/a/[...s]",
+        "/[x]/b/[[...s]]",
+        "/a/[...s]",
+        "/a/[x]/[[...s]]",
+        "/b/[x]/b"
+      ],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/b/b", "/b/[x]/[...s]", "/b/[x]/b"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": [
+        "/[x]/b/[...s]",
+        "/a/a/[...s]",
+        "/b/[...s]",
+        "/b/[x]/[[...s]]",
+        "/b/b"
+      ],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/a/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[[...s]]", "/a/a", "/a/a/[...s]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": [
+        "/[[...s]]",
+        "/[x]/[[...s]]",
+        "/[x]/a/a",
+        "/a/b/[[...s]]",
+        "/b/a/[...s]"
+      ],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/b/[...s]", "/b/[x]", "/b/[x]/[...s]", "/b/a/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/[x]/b", "/b/a"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[x]/[...s]", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b/a"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/b", "/b/a"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b", "/a", "/b/[...s]", "/b/[x]/[[...s]]", "/b/[x]/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/a", "/b/a/[...s]", "/b/b/[x]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[x]", "/b/[...s]", "/b/[x]/[[...s]]", "/b/a/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/b/b", "/a/a/[x]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/a", "/b/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]", "/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/b/a/b"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/[[...s]]", "/a/[...s]", "/a/[x]/[[...s]]", "/a/b/[...s]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/b/a/[...s]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/b/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/b", "/a/[...s]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/a/b", "/b/a/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/a", "/b/[...s]", "/b/[x]/[[...s]]", "/b/a/[x]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/a/[...s]", "/b/a/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a", "/[x]/a/a", "/a/[x]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/a/[...s]", "/a/[x]/[[...s]]", "/b"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/a/a", "/b/[x]/[...s]", "/b/a/[x]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a", "/b/[...s]", "/b/[x]/a"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/[...s]", "/b/b/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/b/[...s]", "/a/a/a"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/a/a", "/a/b/b", "/b/a/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/", "/b/[...s]", "/b/[x]/[[...s]]", "/b/a/[[...s]]", "/b/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/a", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a", "/a/a/a", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/b/[x]/[[...s]]", "/b/a/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/a/[...s]", "/a/b/[x]", "/b/[x]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/b/[...s]", "/b/[x]/[[...s]]", "/b/[x]/a"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/b/[x]/[...s]", "/b/a/b", "/b/b/[...s]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": [
+        "/[[...s]]",
+        "/[x]/[[...s]]",
+        "/a/a/b",
+        "/a/b/[[...s]]",
+        "/b/[x]/[[...s]]"
+      ],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/", "/[x]/a/[[...s]]", "/a/[...s]", "/a/[x]/[[...s]]", "/b/b"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a/a", "/a/[...s]", "/a/[x]/[[...s]]", "/a/a", "/b/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/b", "/a/[x]/b", "/a/a/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/b/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/a/[...s]", "/b/[x]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a", "/b/b/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/[x]/[[...s]]", "/b/a"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a/a", "/a/a/[x]", "/a/b/[...s]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/b/[x]/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[...s]", "/a/[x]/[[...s]]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a/a/[[...s]]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/[x]/a", "/a/a/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a", "/a/b/[x]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a", "/[x]/b", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b/[...s]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/a/a"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/a/b/[[...s]]", "/b/[...s]", "/b/[x]", "/b/[x]/[...s]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a", "/b/[...s]", "/b/[x]/[[...s]]", "/b/a/[x]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a/a", "/a/a/a", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/b", "/a", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/b/[[...s]]", "/b/a"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/[x]/[...s]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b/[x]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a/a", "/a/[...s]", "/a/[x]/[[...s]]", "/b/[...s]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/[x]/a", "/b/[x]", "/b/b/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/a/b", "/a/b/[[...s]]", "/a/b/[x]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a", "/a/[...s]", "/a/[x]/[[...s]]", "/a/b/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/a", "/b", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/b/a/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/[...s]", "/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": [
+        "/[[...s]]",
+        "/[x]/[[...s]]",
+        "/a/b/[[...s]]",
+        "/b/[x]",
+        "/b/b/[...s]"
+      ],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/a", "/b/[...s]", "/b/[x]/[[...s]]", "/b/a/[[...s]]", "/b/a/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/a/[x]", "/a/b/[...s]", "/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/b/[...s]", "/a/a", "/a/b/[x]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/b/[x]", "/b/[x]/[...s]", "/b/b/[x]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/a/b/b", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/[x]/b/[...s]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/[...s]", "/a/[...s]", "/a/[x]/[[...s]]", "/a/a/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/a/b", "/a/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/[x]/b"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/b", "/b/a/a", "/b/b/[...s]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/a/[[...s]]", "/a/b", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/[x]/[...s]", "/a/a/[...s]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/b", "/b/a/[[...s]]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/b/a/[[...s]]", "/b/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/a", "/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/b/a/[[...s]]", "/b/b/[...s]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/b", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b/[x]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/b/[x]/[...s]", "/b/b/[x]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/a/[...s]", "/a/b/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[x]/b", "/a/b", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/a/[...s]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/b/[...s]", "/b/[x]/[[...s]]", "/b/b/[...s]", "/b/b/a"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": [
+        "/[x]/[...s]",
+        "/[x]/a",
+        "/a/[...s]",
+        "/a/[x]/[[...s]]",
+        "/b/[x]/[[...s]]"
+      ],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/b/[...s]", "/b/[x]/[[...s]]", "/b/[x]/b", "/b/a/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/a", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a/a", "/a/[...s]", "/a/[x]/[[...s]]", "/b/a"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]", "/[x]/[...s]", "/a/[x]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[x]/b/b", "/a/b/a", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": [
+        "/[x]/[...s]",
+        "/a/[[...s]]",
+        "/a/a/[x]",
+        "/b/[...s]",
+        "/b/[x]/[[...s]]"
+      ],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a/b", "/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/b", "/a/[...s]", "/a/[x]/[[...s]]", "/a/b/b"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/b/[x]", "/b/b/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/b", "/a/[x]/b", "/b/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/a/[[...s]]", "/a/b/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/", "/[x]/b/b", "/b/[...s]", "/b/[x]/[[...s]]", "/b/[x]/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]", "/[x]/a", "/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b", "/a/[...s]", "/a/[x]/[[...s]]", "/a/a/b", "/b/[...s]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/b/[x]/a", "/b/b/a"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/b/b/[x]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/a/b", "/a/b/[...s]", "/b/[...s]", "/b/[x]/[[...s]]", "/b/a"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": [
+        "/[[...s]]",
+        "/[x]/[[...s]]",
+        "/[x]/b/b",
+        "/a/[[...s]]",
+        "/b/a/[...s]"
+      ],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/[x]/b", "/b", "/b/a/[x]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/a/b", "/a/a/a"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": [
+        "/[...s]",
+        "/a/[...s]",
+        "/a/[x]/[[...s]]",
+        "/a/a/[[...s]]",
+        "/b/a/[[...s]]"
+      ],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/b/b", "/a/[x]/b", "/b/[x]/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": [
+        "/[x]/[...s]",
+        "/[x]/b/[...s]",
+        "/a/[x]/[[...s]]",
+        "/b/[...s]",
+        "/b/[x]/[[...s]]"
+      ],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/b/a/a", "/b/b/[...s]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/[...s]", "/a/[...s]", "/a/[x]/[[...s]]", "/a/b", "/b/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/a/a", "/b/a/[[...s]]", "/b/b"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/[[...s]]", "/b", "/b/b/[x]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]", "/[x]/[...s]", "/a/a/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/a/b", "/b/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/b", "/b/[...s]", "/b/[x]/[[...s]]", "/b/a/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b", "/a/a/[[...s]]", "/b/[...s]", "/b/[x]/[[...s]]", "/b/[x]/a"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/a/[...s]", "/b/a/a"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/b/b", "/b/b/[x]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/[...s]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": [
+        "/[...s]",
+        "/[x]/[[...s]]",
+        "/[x]/a/[[...s]]",
+        "/[x]/b/[[...s]]",
+        "/b/b/[x]"
+      ],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/b/a/[x]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/", "/[x]/[[...s]]", "/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]", "/a/[x]/[...s]", "/b/a/[x]", "/b/b/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/a/a"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/", "/[...s]", "/[x]", "/[x]/[...s]", "/b/[x]/a"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b", "/a/[...s]", "/a/[x]/[[...s]]", "/b/a/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[x]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/a/[[...s]]", "/a/b/[...s]", "/a/b/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/b", "/a/[...s]", "/a/[x]/[[...s]]", "/a/[x]/a", "/a/b/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a/b", "/b/[...s]", "/b/[x]/[[...s]]", "/b/a/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/b", "/b/b/[...s]", "/b/b/[x]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/[x]/[[...s]]", "/a/b/[x]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/b", "/b/[x]/[[...s]]", "/b/a/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/a/b", "/b/[x]/a"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": [
+        "/a/[x]/[...s]",
+        "/a/[x]/b",
+        "/b/[...s]",
+        "/b/[x]/[[...s]]",
+        "/b/a/[...s]"
+      ],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/a/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": [
+        "/[x]/b/[[...s]]",
+        "/a/[...s]",
+        "/a/[x]/[[...s]]",
+        "/a/b/[[...s]]",
+        "/b/b/b"
+      ],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/a/b/a"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/b/[...s]", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/b/[...s]", "/a/b/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/b/[x]", "/b/b/a", "/b/b/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/b/[...s]", "/b/[x]", "/b/[x]/[...s]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/a/[x]/a", "/a/a/[...s]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/a/b", "/b/a/b", "/b/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": [
+        "/[x]/a/[[...s]]",
+        "/a/a",
+        "/b/[...s]",
+        "/b/[x]/[[...s]]",
+        "/b/a/[...s]"
+      ],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/b", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b", "/a/[...s]", "/a/[x]", "/a/[x]/[...s]", "/b/[x]/b"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": [
+        "/[x]/[[...s]]",
+        "/a",
+        "/a/[...s]",
+        "/a/[x]/[[...s]]",
+        "/b/b/[[...s]]"
+      ],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/a", "/b", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b", "/b/[...s]", "/b/[x]/[[...s]]"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[...s]", "/[x]/[[...s]]", "/[x]/b", "/a", "/a/[x]/b"],
+      "unreachable": ["/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]", "/a/[x]/[...s]", "/b/a"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]", "/b/a/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[x]/[...s]", "/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/[[...s]]", "/[x]/a/[[...s]]", "/a/a/[...s]"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": [
+        "/[x]/[[...s]]",
+        "/[x]/a/[...s]",
+        "/a",
+        "/a/[...s]",
+        "/a/[x]/[[...s]]"
+      ],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a/[...s]", "/a/[...s]", "/a/[x]/[[...s]]", "/b/[x]/b"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]", "/[x]/[...s]", "/a/[x]/a", "/a/a/b"],
+      "unreachable": ["/[[...s]]"]
+    },
+    {
+      "routes": ["/[x]/b/a", "/b/[...s]", "/b/[x]/[[...s]]", "/b/b/b"],
+      "unreachable": ["/b/[...s]"]
+    },
+    {
+      "routes": ["/[x]/a/b", "/a/[...s]", "/a/[x]/[[...s]]", "/a/a/b", "/b/[...s]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/[x]/b/[...s]", "/a/[...s]", "/a/[x]/[[...s]]", "/b/a/[x]"],
+      "unreachable": ["/a/[...s]"]
+    },
+    {
+      "routes": ["/a/[x]/[...s]", "/a/a", "/b/a/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/[...s]", "/a/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/[...s]", "/b/a/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/[...s]", "/b/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[[...s]]", "/b/a/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]", "/[x]/a/a", "/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/a", "/a/b/[...s]", "/b/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[...s]", "/b/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/a", "/a/[x]/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/[...s]", "/a/[x]/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/[[...s]]", "/a/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/[[...s]]", "/b/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/a/[x]/[[...s]]", "/a/b", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/a", "/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/[x]", "/b/[[...s]]", "/b/a/[[...s]]", "/b/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]", "/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/a/[x]", "/b/a/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[[...s]]", "/a/b/[x]", "/b/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/b", "/b/[x]/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[...s]", "/a/a/a", "/a/a/b", "/a/b", "/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/b/[...s]", "/b/[x]/b", "/b/a/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b", "/a/a/[[...s]]", "/a/a/[x]", "/b", "/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a", "/b/a/[...s]", "/b/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/a", "/a/b", "/b/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a", "/a/b/a", "/b/[x]", "/b/[x]/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[...s]", "/a/a/[[...s]]", "/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/a/[x]/a", "/a/a/[[...s]]", "/b/a/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a", "/a/b/[...s]", "/b", "/b/a/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/[x]/a/[[...s]]", "/a/[x]/a", "/a/a/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/a/a", "/a/b/[x]", "/b/[x]", "/b/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/a", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a", "/a/[...s]", "/b/[...s]", "/b/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/a/[...s]", "/b/a/b", "/b/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[[...s]]", "/a/a", "/b/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/[x]/a/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/[...s]", "/b/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/b/[x]/b", "/b/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/b/[x]/a", "/b/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/[x]", "/b/a/[x]", "/b/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[[...s]]", "/a/a", "/b/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/b", "/a/[[...s]]", "/a/a", "/a/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/b/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[[...s]]", "/b/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/[...s]", "/a", "/b/[x]/b", "/b/a/[x]", "/b/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/[[...s]]", "/b/[x]/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[[...s]]", "/a/a", "/b/a/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/a", "/[x]/a/b", "/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/a", "/b/a/[[...s]]", "/b/a/a", "/b/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/a/a/[...s]", "/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/[x]/a", "/a/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/b/[...s]", "/b/[x]/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/a/[x]/[...s]", "/a/a/[x]", "/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/[...s]", "/a/b/[...s]", "/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/a/b/[[...s]]", "/a/b/[x]", "/b/[x]/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/[x]/[...s]", "/a/b/[[...s]]", "/a/b/[x]", "/b/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b", "/a/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/b", "/a/b/a", "/b/b/[...s]", "/b/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[...s]", "/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[[...s]]", "/b/a/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a", "/a/a/a", "/a/b/b", "/b/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/a/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/a", "/a/b/[[...s]]", "/b/a/a", "/b/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/b/a", "/b/a/b", "/b/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b", "/a/[...s]", "/b/a", "/b/a/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/[...s]", "/b/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/b", "/a/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[...s]", "/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/[[...s]]", "/b/[x]/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[[...s]]", "/[x]/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/[...s]", "/a/a/[...s]", "/b/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/a", "/a/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/b", "/a", "/a/b", "/b/a/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/b/a/[[...s]]", "/b/a/[x]", "/b/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b", "/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/a", "/a/b/[...s]", "/a/b/b", "/b/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/b", "/b/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/a/[x]", "/b/[x]/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/[...s]", "/[x]/b/a", "/a/a/a", "/b/a/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/[[...s]]", "/b/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/[...s]", "/b/a/[x]", "/b/a/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/a", "/a/a", "/a/b/a", "/b/a/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/b", "/b/[x]/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/[[...s]]", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/a/[x]", "/b", "/b/[x]/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b", "/a/[x]", "/b/[x]/b", "/b/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/a", "/a/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/[x]", "/b/[x]/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a", "/b/a/[...s]", "/b/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/[x]", "/b/a/[[...s]]", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/a", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/[x]/a/[...s]", "/b/a/[...s]", "/b/a/a", "/b/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/b", "/a/[...s]", "/a/b/[...s]", "/b/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a", "/a/b/[x]", "/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b/a", "/a/b/b", "/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/a/[x]/[[...s]]", "/a/a/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/[[...s]]", "/b/[[...s]]", "/b/[x]/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[[...s]]", "/a/a/b", "/b/[x]/b", "/b/a/[[...s]]", "/b/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/[x]/b/[...s]", "/a/b/b", "/b/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/a/[x]", "/b/[x]/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/b/[...s]", "/b/a", "/b/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/[x]/a", "/[x]/a/[...s]", "/[x]/b", "/a/[x]/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/b/a/[...s]", "/b/b/[...s]", "/b/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/[[...s]]", "/a/[x]", "/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/[x]/a/b", "/[x]/b/[...s]", "/a/b", "/b/[x]/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b", "/b/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/[[...s]]", "/a/a/b", "/b/[x]/b", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/[...s]", "/a/a/b", "/b/a/[...s]", "/b/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/b/a/a", "/b/b/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/[...s]", "/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]", "/[x]/[...s]", "/a/a/[x]", "/a/a/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/b/a/[[...s]]", "/b/a/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]", "/[x]/a/a", "/a/[x]/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/b", "/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/[x]", "/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/[[...s]]", "/a/b/[...s]", "/b/a/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/[[...s]]", "/b/a/[[...s]]", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/[[...s]]", "/[x]/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[...s]", "/[x]/a/a", "/[x]/a/b", "/[x]/b/a", "/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[...s]", "/a/b/b", "/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a", "/a/[...s]", "/a/a/a", "/b/[x]/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/[...s]", "/a/[x]/b", "/b/[x]/[...s]", "/b/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/b", "/b/[x]/[[...s]]", "/b/[x]/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/b", "/a/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/b", "/[x]/b/[...s]", "/a/b/b", "/b"],
+      "unreachable": []
+    },
+    {
+      "routes": [
+        "/[...s]",
+        "/[x]/a/[...s]",
+        "/b/[x]/[[...s]]",
+        "/b/[x]/a",
+        "/b/b/[...s]"
+      ],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/[...s]", "/a/[x]/b", "/b/a", "/b/a/a", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/a", "/a/b/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a", "/[x]/a/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/a/[x]", "/a/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/[x]/b", "/a", "/a/a", "/b/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[[...s]]", "/a", "/a/a/a", "/b/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]/[...s]", "/b/[x]/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/a/[[...s]]", "/a/b/[...s]", "/a/b/[x]", "/b/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]", "/a/[x]/b", "/a/a/[[...s]]", "/b/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b", "/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/a", "/a/[...s]", "/b/a/[[...s]]", "/b/b/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[[...s]]", "/[x]/b/[...s]", "/a/a/a", "/b/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/[...s]", "/a/[[...s]]", "/a/[x]", "/b/a/[...s]", "/b/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/b", "/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/", "/b/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/a", "/a/[x]", "/b/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/b/a/[...s]", "/b/a/b"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/[x]/b/b", "/a/b", "/b/a/a"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/b/b", "/b/[x]/[...s]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]/a/a", "/[x]/b/[...s]", "/a/[x]", "/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[...s]", "/a/[[...s]]", "/a/[x]", "/a/a/b", "/b/a/[x]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/a/[x]", "/a/[x]/[...s]", "/a/[x]/a", "/a/a/a", "/a/b/[[...s]]"],
+      "unreachable": []
+    },
+    {
+      "routes": ["/[x]", "/a/[x]"],
+      "unreachable": []
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import { splitUrl } from "./url";
  *   resolvePath("/a/b/c", "../x?q=1")  -> "/a/b/x?q=1"
  *   resolvePath("/a/b", "?q=1")        -> "/a/b?q=1"    (query-only target)
  *   resolvePath("/a/b", "#top")        -> "/a/b#top"    (hash-only target)
+ *   resolvePath("/a/b?q=1", "#top")    -> "/a/b?q=1#top" (query kept, as a browser does)
  *
  * `.` keeps the current directory, `..` goes up one segment. Walking above the
  * root clamps at "/" rather than producing a path with leading "..".
@@ -20,9 +21,11 @@ export function resolvePath(current: string, target: string): string {
   const from = splitUrl(current);
   const to = splitUrl(target);
 
-  // A query- or hash-only target keeps the current path.
+  // A query- or hash-only target keeps the current path. A hash-only one also
+  // keeps the current query, per the URL spec: an in-page anchor must not
+  // reset the filters above it.
   if (to.path === "") {
-    return from.path + (to.query || "") + (to.hash || "");
+    return from.path + (to.query || from.query) + to.hash;
   }
 
   // Absolute target — its own query and hash come along, the current ones don't.

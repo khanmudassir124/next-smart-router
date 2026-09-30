@@ -7,13 +7,7 @@ import {
   toSegments,
 } from "./segments";
 import type { BuildParamsOf, Route } from "./typed-routes";
-import {
-  applyBasePath,
-  applyTrailingSlash,
-  buildQuery,
-  type ArrayFormat,
-  type QueryInput,
-} from "./url";
+import { buildQuery, toUrlPath, type ArrayFormat, type QueryInput } from "./url";
 
 export class SmartRouterHrefError extends Error {
   constructor(message: string) {
@@ -121,11 +115,7 @@ export function buildHref<R extends Route>(
 
   if (options.raw) return path + query + hash;
 
-  const config = getConfig();
-  return applyBasePath(
-    applyTrailingSlash(path, config.trailingSlash) + query + hash,
-    config.basePath
-  );
+  return toUrlPath(path + query + hash, getConfig());
 }
 
 /**

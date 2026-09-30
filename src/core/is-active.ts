@@ -1,7 +1,8 @@
 import { getRouteState } from "./route-registry";
 import { matchPatternParams } from "./route-matcher";
 import { toSegments } from "./segments";
-import { normalizePath } from "./url";
+import type { RouteState } from "./route-state";
+import { normalizePath, splitUrl } from "./url";
 
 export interface IsActiveOptions {
   /**
@@ -31,7 +32,17 @@ export function isActive(
   target: string,
   options: IsActiveOptions = {}
 ): boolean {
-  const config = getRouteState().config;
+  return isActiveIn(getRouteState(), pathname, target, options);
+}
+
+/** {@link isActive} against an explicit route state — what `createRouter` uses. */
+export function isActiveIn(
+  state: RouteState,
+  pathname: string,
+  target: string,
+  options: IsActiveOptions = {}
+): boolean {
+  const config = state.config;
   const current = normalizePath(pathname, config);
 
   if (
@@ -41,9 +52,11 @@ export function isActive(
     return false;
   }
 
-  // Pattern form — match rather than string-compare.
+  // Pattern form — match rather than string-compare. The query and hash are
+  // not part of the pattern ("/w/[id]?tab=a" is the pattern "/w/[id]").
   if (target.includes("[")) {
-    if (matchPatternParams(current, target) !== null) return true;
+    const pattern = splitUrl(target).path;
+    if (matchPatternParams(current, pattern) !== null) return true;
     if (options.exact) return false;
 
     // A non-exact pattern is active when any ancestor of the current path
@@ -51,7 +64,7 @@ export function isActive(
     const segs = toSegments(current);
     for (let i = segs.length - 1; i > 0; i--) {
       const ancestor = "/" + segs.slice(0, i).join("/");
-      if (matchPatternParams(ancestor, target) !== null) return true;
+      if (matchPatternParams(ancestor, pattern) !== null) return true;
     }
     return false;
   }
@@ -68,7 +81,8 @@ function queryMatches(
   target: string,
   keys: readonly string[]
 ): boolean {
-  const a = new URLSearchParams(pathname.split("?")[1] ?? "");
-  const b = new URLSearchParams(target.split("?")[1] ?? "");
+  // splitUrl, not split("?"): a "#top" must not end up inside the last value.
+  const a = new URLSearchParams(splitUrl(pathname).query);
+  const b = new URLSearchParams(splitUrl(target).query);
   return keys.every((key) => a.get(key) === b.get(key));
 }

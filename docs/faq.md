@@ -77,7 +77,11 @@ expects.
 ## Does this work with `basePath` / `trailingSlash` / i18n?
 
 Yes. Pass them to `initializeSmartRouter` (or `createRouter`) and every entry
-point strips them before matching and re-applies them on output.
+point strips them before matching. On output, the locale is always kept.
+`basePath` and `trailingSlash` go on URL paths (`buildHref`, `fsBackPathSafe`)
+but not on navigation hrefs (breadcrumbs, `nav.*`), because `<Link>` and
+`router.push` add `basePath` themselves. See
+[Normalization](./concepts.md#normalization).
 
 ```ts
 initializeSmartRouter({ routes: ROUTES, basePath: "/app", locales: ["en", "fr"] });

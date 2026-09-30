@@ -29,7 +29,7 @@ The registry sorts once at registration and every matcher reads that order, so
 registered. Getting this wrong is subtle: the catch-all matches, so nothing
 errors — you just get the wrong params.
 
-`getOrderedRoutes()` exposes the order; the devtools panel shows a route's rank
+`getOrderedRoutes()` exposes the order; the devtools panel shows a route's `nsr rank`
 and which patterns also matched but lost.
 
 ## Normalization
@@ -39,7 +39,17 @@ matching: query and hash removed, `basePath` and locale prefix stripped, slashes
 collapsed, no trailing slash. That's why `matchRoute("/w/42?tab=1")` works, and
 why `basePath: "/app"` needs no special handling at call sites.
 
-Output paths get `basePath` and `trailingSlash` re-applied.
+Outputs put back what matters for where they're going. There are two kinds:
+
+| Output                                                                                                        | Locale | `trailingSlash` | `basePath` | Use it with                              |
+| ------------------------------------------------------------------------------------------------------------- | ------ | --------------- | ---------- | ---------------------------------------- |
+| **URL paths**: `buildHref`, `fsBackPathSafe`, `getNearestStaticRoute`, and the same methods on `createRouter` | kept   | applied         | added      | `<a href>`, redirects, `window.location` |
+| **Navigation hrefs**: breadcrumb `href`s, `nav.*`, `<SmartLink>`                                              | kept   | —               | not added  | `<Link>`, `router.push`                  |
+
+Next's `<Link>` and `router.push` add `basePath` themselves, so a navigation
+href that already had it would land on `/app/app/...`. The App Router adds no
+locale, so every output keeps the one its input had. `buildHref(..., { raw: true })`
+gives the navigation form of a built href.
 
 ## The registry vs. `createRouter`
 

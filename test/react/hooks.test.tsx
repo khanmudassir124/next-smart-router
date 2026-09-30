@@ -64,7 +64,9 @@ import {
   useQueryStates,
   useRoute,
   useRouteState,
+  useNavigationGuard,
   useSmartRouter,
+  SmartRouterDevtools,
 } from "../../src/react";
 
 const ROUTES = [
@@ -187,6 +189,21 @@ describe("useSmartRouter", () => {
     await waitFor(() =>
       expect(router.push).toHaveBeenCalledWith(
         "/w/42/members?locale=fr&utm_source=x",
+        expect.anything()
+      )
+    );
+  });
+
+  it("Q-05: keeps repeated keys on the target while carrying sticky ones", async () => {
+    initializeSmartRouter({ routes: ROUTES, stickyQuery: ["locale"], force: true });
+    setLocation("/w/42/settings?locale=fr");
+
+    const { result } = renderHook(() => useSmartRouter());
+    act(() => result.current.push("../members?tag=a&tag=b"));
+
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith(
+        "/w/42/members?locale=fr&tag=a&tag=b",
         expect.anything()
       )
     );
@@ -478,5 +495,251 @@ describe("SmartLink", () => {
     expect(screen.getByText("Members").getAttribute("href")).toBe(
       "/w/42/members?locale=fr"
     );
+  });
+
+  it("Q-05: keeps repeated keys on the href while carrying sticky ones", () => {
+    initializeSmartRouter({ routes: ROUTES, stickyQuery: ["locale"], force: true });
+    setLocation("/w/42/settings?locale=fr");
+
+    render(<SmartLink href="../members?tag=a&tag=b">Members</SmartLink>);
+    expect(screen.getByText("Members").getAttribute("href")).toBe(
+      "/w/42/members?locale=fr&tag=a&tag=b"
+    );
+  });
+});
+
+/* -------------------------------------------------
+ * SmartRouterDevtools
+ *
+ * REGRESSION PIN. The overlay computes its near-miss list and its
+ * "rank N/total" inline today. Both are about to move behind explainIn().
+ * These tests describe the CURRENT rendered output so the refactor cannot
+ * change it silently.
+ * ------------------------------------------------- */
+
+describe("SmartRouterDevtools", () => {
+  // Overlapping patterns, so there is a real near miss to pin. The repo-wide
+  // ROUTES fixture has none at any path.
+  const OVERLAPPING = ["/", "/w/[id]", "/w/[id]/[tab]", "/w/[id]/settings"];
+
+  beforeEach(() => {
+    initializeSmartRouter({ routes: OVERLAPPING, force: true });
+    setLocation("/w/42/settings");
+  });
+
+  it("D-01: reports the matched route with its rank out of the ordered total", () => {
+    render(<SmartRouterDevtools defaultOpen />);
+
+    // Specificity order is: / , /w/[id] , /w/[id]/settings , /w/[id]/[tab]
+    // so the static-tail winner sits third of four.
+    //
+    // The label reads "nsr rank", not "rank", on purpose: this ordering is the
+    // library's own and it does NOT match Next's, which groups by trie branch.
+    // Saying whose rank it is costs nothing and stops the number being read as
+    // a claim about the framework.
+    expect(screen.getByText(/\/w\/\[id\]\/settings\s+\(nsr rank 3\/4\)/)).toBeTruthy();
+  });
+
+  it("D-02: lists the patterns that also matched but lost", () => {
+    render(<SmartRouterDevtools defaultOpen />);
+
+    expect(screen.getByText("also matched")).toBeTruthy();
+    expect(screen.getByText("/w/[id]/[tab]")).toBeTruthy();
+  });
+
+  it("D-03: shows no near-miss row when nothing else matched", () => {
+    initializeSmartRouter({ routes: ["/", "/w/[id]/settings"], force: true });
+    render(<SmartRouterDevtools defaultOpen />);
+
+    expect(screen.queryByText("also matched")).toBeNull();
+  });
+
+  it("D-04: renders an em dash for a path no route matches", () => {
+    setLocation("/nothing/here");
+    render(<SmartRouterDevtools defaultOpen />);
+
+    expect(screen.getByText("no match")).toBeTruthy();
+  });
+});
+
+/* -------------------------------------------------
+ * Review regressions
+ *
+ * One per bug found in the review pass. Each failed before its fix.
+ * ------------------------------------------------- */
+
+describe("basePath", () => {
+  beforeEach(() => {
+    initializeSmartRouter({ routes: ROUTES, basePath: "/app", force: true });
+  });
+
+  it("fsBack hands router.push a path without basePath — Next adds it", async () => {
+    setLocation("/w/42/members");
+    const { result } = renderHook(() => useSmartRouter());
+
+    act(() => result.current.fsBack());
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith("/w/42", { scroll: undefined })
+    );
+  });
+
+  it("a shallow write keeps basePath in the address bar", async () => {
+    pathname = "/w"; // usePathname() excludes basePath...
+    window.history.replaceState(null, "", "/app/w"); // ...the address bar doesn't.
+
+    const { result } = renderHook(() =>
+      useQueryState("q", parseAsString.default(""), { shallow: true })
+    );
+    act(() => result.current[1]("x"));
+
+    await waitFor(() => expect(window.location.search).toBe("?q=x"));
+    expect(window.location.pathname).toBe("/app/w");
+  });
+});
+
+describe("locales", () => {
+  beforeEach(() => {
+    initializeSmartRouter({ routes: ROUTES, locales: ["en", "fr"], force: true });
+  });
+
+  it("fsBack stays in the user's locale", async () => {
+    setLocation("/fr/w/42/members");
+    const { result } = renderHook(() => useSmartRouter());
+
+    act(() => result.current.fsBack());
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith("/fr/w/42", { scroll: undefined })
+    );
+  });
+
+  it("root() goes to the locale's root", async () => {
+    setLocation("/fr/w/42");
+    const { result } = renderHook(() => useSmartRouter());
+
+    act(() => result.current.root());
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith("/fr", { scroll: undefined })
+    );
+  });
+});
+
+describe("query writes", () => {
+  it("a write pending at unmount still lands, while on the same page", async () => {
+    setLocation("/w");
+    const { result, unmount } = renderHook(() =>
+      useQueryState("q", parseAsString.default(""))
+    );
+
+    act(() => result.current[1]("hello"));
+    unmount(); // a dialog that sets a filter and closes in the same tick
+
+    expect(router.replace).toHaveBeenCalledWith("/w?q=hello", { scroll: false });
+  });
+
+  it("a write pending at unmount is dropped once the page has changed", async () => {
+    setLocation("/w");
+    const { result, unmount } = renderHook(() =>
+      useQueryState("q", parseAsString.default(""), { throttleMs: 500 })
+    );
+
+    act(() => result.current[1]("hello"));
+    window.history.replaceState(null, "", "/w/42"); // the user clicked away
+    unmount();
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it("functional updaters in one tick build on each other", async () => {
+    setLocation("/w");
+    const { result } = renderHook(() =>
+      useQueryState("count", parseAsInt.default(0), { shallow: true })
+    );
+
+    act(() => {
+      result.current[1]((c) => c + 1);
+      result.current[1]((c) => c + 1);
+    });
+    await waitFor(() => expect(window.location.search).toBe("?count=2"));
+  });
+
+  it("setting a value back within the tick is not skipped as a no-op", async () => {
+    setLocation("/w?page=1");
+    const { result } = renderHook(() =>
+      useQueryState("page", parseAsInt.default(1), { shallow: true })
+    );
+
+    act(() => {
+      result.current[1](5);
+      result.current[1](1);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(window.location.search).toBe("?page=1");
+  });
+
+  it("useQueryStates functional updaters see a pending write", async () => {
+    setLocation("/w");
+    const { result } = renderHook(() =>
+      useQueryStates({ page: parseAsInt.default(1) }, { shallow: true })
+    );
+
+    act(() => {
+      result.current[1]((prev) => ({ page: prev.page + 1 }));
+      result.current[1]((prev) => ({ page: prev.page + 1 }));
+    });
+    await waitFor(() => expect(window.location.search).toBe("?page=3"));
+  });
+});
+
+describe("SmartLink review regressions", () => {
+  it("leaves a target=_blank click to the browser, even with a guard", async () => {
+    onBeforeNavigate(() => {});
+    render(
+      <SmartLink href="/w" target="_blank">
+        New tab
+      </SmartLink>
+    );
+
+    // Runs after React's root listener: record what SmartLink decided, then
+    // cancel the default ourselves so happy-dom doesn't try to open a tab.
+    let preventedBySmartLink: boolean | undefined;
+    const record = (event: Event) => {
+      preventedBySmartLink = event.defaultPrevented;
+      event.preventDefault();
+    };
+    window.addEventListener("click", record);
+
+    screen
+      .getByText("New tab")
+      .dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+    window.removeEventListener("click", record);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    expect(preventedBySmartLink).toBe(false);
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("matchQuery compares against the current search", () => {
+    setLocation("/w?tab=members");
+    render(
+      <SmartLink href="?tab=members" matchQuery={["tab"]} activeClassName="on">
+        Members
+      </SmartLink>
+    );
+    expect(screen.getByText("Members").className).toContain("on");
+  });
+});
+
+describe("useNavigationGuard review regressions", () => {
+  it("an inline confirm does not push a history entry per render", () => {
+    initializeSmartRouter({ routes: ROUTES, interceptBrowserBack: true, force: true });
+    const before = window.history.length;
+
+    const { rerender } = renderHook(() =>
+      useNavigationGuard({ when: true, confirm: () => true })
+    );
+    for (let i = 0; i < 5; i++) rerender();
+
+    expect(window.history.length).toBe(before + 1);
   });
 });

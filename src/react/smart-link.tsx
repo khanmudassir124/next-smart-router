@@ -19,13 +19,8 @@ import { isActive as isActiveCore, type IsActiveOptions } from "../core/is-activ
 import { resolvePath } from "../core/resolve-path";
 import { writeFlash, writeTransfer, type FlashMessage } from "../core/transfer";
 import type { TransferStrategy } from "../core/config";
-import {
-  buildQuery,
-  selectQuery,
-  splitUrl,
-  withQuery,
-  type QueryInput,
-} from "../core/url";
+import { carryQuery, selectQuery, withQuery, type QueryInput } from "../core/url";
+import { useClientLocationSearch } from "./use-location";
 
 /** When a link starts prefetching. */
 export type PrefetchStrategy = "render" | "hover" | "viewport" | false;
@@ -98,15 +93,17 @@ export const SmartLink = forwardRef<HTMLAnchorElement, SmartLinkProps>(
     } = props;
 
     const pathname = usePathname() ?? "/";
+    // Client-only on purpose: `useSearchParams()` would make every statically
+    // prerendered page holding a link need a <Suspense> boundary. Empty on the
+    // server and the hydration render, so both render the same href.
+    const search = useClientLocationSearch();
+    const current = search ? `${pathname}?${search}` : pathname;
     const router = useRouter();
     const anchorRef = useRef<HTMLAnchorElement | null>(null);
     const prefetched = useRef(false);
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const resolved = useMemo(() => {
-      const current =
-        typeof window === "undefined" ? pathname : pathname + window.location.search;
-
       let next = resolvePath(current, href);
 
       const config = getConfig();
@@ -116,23 +113,18 @@ export const SmartLink = forwardRef<HTMLAnchorElement, SmartLinkProps>(
           ...(Array.isArray(keepQuery) ? keepQuery : []),
         ];
         if (keys.length) {
-          const carried = selectQuery(current, keys);
-          const parts = splitUrl(next);
-          const explicit = parts.query
-            ? Object.fromEntries(new URLSearchParams(parts.query.slice(1)))
-            : {};
-          next = parts.path + buildQuery({ ...carried, ...explicit }) + parts.hash;
+          next = carryQuery(next, selectQuery(current, keys));
         }
       }
 
       return query ? withQuery(next, query) : next;
-    }, [href, pathname, keepQuery, query]);
+    }, [href, current, keepQuery, query]);
 
     const active = useMemo(() => {
       const options: IsActiveOptions = { exact };
       if (matchQuery) options.matchQuery = matchQuery;
-      return isActiveCore(pathname, resolved, options);
-    }, [pathname, resolved, exact, matchQuery]);
+      return isActiveCore(current, resolved, options);
+    }, [current, resolved, exact, matchQuery]);
 
     /* --- prefetch strategies --- */
 
@@ -187,13 +179,19 @@ export const SmartLink = forwardRef<HTMLAnchorElement, SmartLinkProps>(
         onClick?.(event);
         if (event.defaultPrevented) return;
 
-        // Let the browser handle modified clicks and new-tab targets.
+        // Let the browser handle modified clicks, new-tab targets and
+        // downloads — as next/link does. Otherwise a guard would take the
+        // click over and navigate this tab, and flash/state would be written
+        // to a tab the user is not going to.
+        const target = event.currentTarget.getAttribute("target");
         if (
           event.metaKey ||
           event.ctrlKey ||
           event.shiftKey ||
           event.altKey ||
-          event.button !== 0
+          event.button !== 0 ||
+          (target && target !== "_self") ||
+          event.currentTarget.hasAttribute("download")
         ) {
           return;
         }
@@ -201,8 +199,7 @@ export const SmartLink = forwardRef<HTMLAnchorElement, SmartLinkProps>(
         if (flash) writeFlash(flash);
         if (state !== undefined) writeTransfer(resolved, state, { strategy });
 
-        const from =
-          typeof window === "undefined" ? pathname : pathname + window.location.search;
+        const from = current;
         const type = replace ? "replace" : "push";
 
         // Fast path: with no guards registered, let next/link navigate.
@@ -225,7 +222,7 @@ export const SmartLink = forwardRef<HTMLAnchorElement, SmartLinkProps>(
           emitNavigation({ type, from, to: resolved, shallow: false });
         });
       },
-      [onClick, flash, state, strategy, resolved, pathname, replace, router, scroll]
+      [onClick, flash, state, strategy, resolved, current, replace, router, scroll]
     );
 
     const composedClassName =

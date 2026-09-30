@@ -86,6 +86,29 @@ describe("createRouter", () => {
     );
   });
 
+  it("isActive honours matchQuery, as the global isActive does", () => {
+    const router = createRouter(ROUTES);
+    expect(router.isActive("/w?tab=b", "/w?tab=a", { matchQuery: ["tab"] })).toBe(
+      false
+    );
+    expect(router.isActive("/w?tab=a", "/w?tab=a", { matchQuery: ["tab"] })).toBe(true);
+  });
+
+  it("isActive ignores a hash, and the query on a pattern target", () => {
+    const router = createRouter(ROUTES);
+    expect(router.isActive("/w?tab=a", "/w?tab=a#top", { matchQuery: ["tab"] })).toBe(
+      true
+    );
+    expect(router.isActive("/w/42", "/w/[id]?tab=a")).toBe(true);
+  });
+
+  it("keeps repeated keys on the target when carrying sticky params", () => {
+    const router = createRouter(ROUTES, { stickyQuery: ["locale"] });
+    expect(router.withSticky("/w?locale=fr", "/w/42?tag=a&tag=b")).toBe(
+      "/w/42?locale=fr&tag=a&tag=b"
+    );
+  });
+
   it("builds breadcrumbs and active state from its own state", () => {
     const router = createRouter(ROUTES, { meta: META });
 

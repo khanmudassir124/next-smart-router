@@ -105,5 +105,31 @@ so the version bump follows the change rather than always being a patch.
 npx changeset          # pick patch / minor / major, write a one-line summary
 ```
 
-Commit the generated file with your PR. On merge to `main`, CI opens a
-"Version Packages" PR; merging that publishes to npm with provenance.
+Commit the generated file with your PR. CI fails a PR that changes `src/` or
+`package.json` without one; use `npx changeset --empty` for a change that
+should not release.
+
+On merge to `main`, [`release.yml`](./.github/workflows/release.yml) publishes
+with no further step:
+
+1. The full CI workflow runs again: the version matrix, lint, build and the
+   tarball smoke test. Nothing publishes unless all of it passes.
+2. If changesets are pending, `changeset version` bumps `package.json`, writes
+   `CHANGELOG.md`, and the bot commits `chore(release): vX.Y.Z` to `main`.
+3. The package is built and published to npm over OIDC trusted publishing,
+   with provenance and no token. The `vX.Y.Z` tag and a GitHub release follow.
+
+A merge with no changesets publishes nothing. If a publish fails after the
+version commit landed, the next run publishes that version, because `changeset
+publish` ships any version npm doesn't have yet. Re-run it by hand from the
+Actions tab (`workflow_dispatch`).
+
+### One-time repository setup
+
+- **npm:** the package's trusted publisher is this repo, workflow
+  `release.yml`.
+- **GitHub → Settings → Actions → General:** workflow permissions set to
+  "Read and write".
+- **Branch protection on `main`:** if you require PRs, allow
+  `github-actions[bot]` to bypass it, or the version commit is rejected. The
+  run then fails before publishing, so npm and git never disagree.

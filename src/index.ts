@@ -72,6 +72,24 @@ export {
   type RouteConflict,
 } from "./core/create-router";
 
+export {
+  explain,
+  explainIn,
+  type RouteExplanation,
+  type ExplainedCandidate,
+  type ExplainedWinner,
+  type ExplainedNearMiss,
+} from "./core/explain";
+
+export { type RejectReason } from "./core/route-matcher";
+
+export {
+  findUnreachableRoutes,
+  type UnreachableRoute,
+  type UnreachableWitness,
+  type FindUnreachableOptions,
+} from "./core/unreachable";
+
 /* -------------------------------------------------
  * Paths
  * ------------------------------------------------- */

@@ -1,15 +1,23 @@
 name: Release
 
-# Publishes whatever Changesets has queued. Versioning is driven by the
-# changeset files contributors add with their PRs, so a breaking change ships
-# as a major instead of being auto-bumped to a patch.
+# Merge to main → publish to npm, in one step.
+#
+#   PR merged ──► CI (full matrix + tarball smoke) ──► changesets pending?
+#                                                        │
+#                                  no ──► nothing to release, stop
+#                                  yes ─► version bump + CHANGELOG, committed to main
+#                                           └─► build ─► npm publish ─► tag + GitHub release
+#
+# Versioning comes from the changeset files contributors add with their PRs (CI
+# fails a PR that changes src/ without one), so a breaking change ships as a
+# major instead of being auto-bumped to a patch.
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
-  pull-requests: write
   id-token: write
 
 concurrency:
@@ -17,12 +25,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          # The branch tip, not the event SHA: when two merges land close
+          # together, the second run must see the version commit the first run
+          # pushed, or it would consume the same changesets twice.
+          ref: main
           fetch-depth: 0
 
       - name: Setup Node
@@ -46,21 +62,47 @@ jobs:
           npm --version
 
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
-      - run: npx publint
 
-      # Opens (or updates) a "Version Packages" PR when changesets are pending;
-      # publishes when that PR is merged.
-      - name: Version or publish
+      # Consumes the pending changesets directly, instead of opening a
+      # "Version Packages" PR that someone then has to remember to merge.
+      - name: Version
+        id: version
+        run: |
+          pending=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l)
+          if [ "$pending" -eq 0 ]; then
+            echo "No pending changesets."
+            exit 0
+          fi
+
+          npx changeset version
+          # changeset version leaves the lockfile's own version behind.
+          npm install --package-lock-only --ignore-scripts --no-fund --no-audit
+          npx prettier --write CHANGELOG.md
+
+          version=$(node -p "require('./package.json').version")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(release): v$version"
+          # Fails loudly if main is protected against this push — see
+          # CONTRIBUTING.md#releasing. Nothing is published in that case, so
+          # git and npm never disagree about what was released.
+          git push origin HEAD:main
+          echo "Versioned $version"
+
+      # After versioning: tsup bakes package.json's version into the CLI's
+      # --version output.
+      - run: npm run build
+
+      # With no changesets left, the action skips versioning and runs publish,
+      # which ships any package.json version npm doesn't have yet — including
+      # one from an earlier run whose publish step failed. It then pushes the
+      # vX.Y.Z tag and creates the GitHub release from the CHANGELOG entry.
+      - name: Publish
         uses: changesets/action@v1
         with:
-          version: npm run changeset:version
           publish: npm run changeset:publish
-          commit: "chore(release): version packages"
-          title: "chore(release): version packages"
+          createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Left in place so setting the secret later Just Works. While it is

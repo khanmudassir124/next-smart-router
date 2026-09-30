@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { getConfig } from "../core/config";
 import { onBeforeNavigate, type NavigationGuard } from "../core/events";
@@ -38,17 +38,24 @@ const DEFAULT_MESSAGE = "You have unsaved changes. Leave anyway?";
 export function useNavigationGuard(options: NavigationGuardOptions): void {
   const { when, message = DEFAULT_MESSAGE, confirm } = options;
 
+  // Read at navigation time, not captured by the effect. An inline `confirm`
+  // arrow is a new function every render; as an effect dependency it
+  // re-installed everything per render, and with interceptBrowserBack each
+  // install pushed another history entry the user then had to back through.
+  const latest = useRef({ message, confirm });
+  latest.current = { message, confirm };
+
   useEffect(() => {
     if (!when) return;
 
-    const guard: NavigationGuard = async ({ cancel }) => {
-      const allowed = confirm
-        ? await confirm(message)
-        : typeof window !== "undefined"
-          ? window.confirm(message)
-          : true;
+    const ask = (): boolean | Promise<boolean> => {
+      const { message, confirm } = latest.current;
+      if (confirm) return confirm(message);
+      return typeof window !== "undefined" ? window.confirm(message) : true;
+    };
 
-      if (!allowed) cancel();
+    const guard: NavigationGuard = async ({ cancel }) => {
+      if (!(await ask())) cancel();
     };
 
     const release = onBeforeNavigate(guard);
@@ -56,15 +63,15 @@ export function useNavigationGuard(options: NavigationGuardOptions): void {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       // Legacy browsers require a return value to trigger the prompt.
-      event.returnValue = message;
-      return message;
+      event.returnValue = latest.current.message;
+      return latest.current.message;
     };
 
     window.addEventListener("beforeunload", onBeforeUnload);
 
     let releaseBack: (() => void) | undefined;
     if (getConfig().interceptBrowserBack) {
-      releaseBack = installBackSentinel(message, confirm);
+      releaseBack = installBackSentinel(ask);
     }
 
     return () => {
@@ -72,7 +79,7 @@ export function useNavigationGuard(options: NavigationGuardOptions): void {
       window.removeEventListener("beforeunload", onBeforeUnload);
       releaseBack?.();
     };
-  }, [when, message, confirm]);
+  }, [when]);
 }
 
 /**
@@ -82,16 +89,13 @@ export function useNavigationGuard(options: NavigationGuardOptions): void {
  * Opt-in because it makes the history stack one entry deeper than the user
  * expects, which is visible if they hold the back button.
  */
-function installBackSentinel(
-  message: string,
-  confirm?: (message: string) => boolean | Promise<boolean>
-): () => void {
+function installBackSentinel(ask: () => boolean | Promise<boolean>): () => void {
   if (typeof window === "undefined") return () => {};
 
   window.history.pushState(window.history.state, "", window.location.href);
 
   const onPopState = async () => {
-    const allowed = confirm ? await confirm(message) : window.confirm(message);
+    const allowed = await ask();
 
     if (allowed) {
       window.removeEventListener("popstate", onPopState);
