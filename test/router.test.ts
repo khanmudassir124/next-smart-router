@@ -86,6 +86,13 @@ describe("createRouter", () => {
     );
   });
 
+  it("keeps repeated keys on the target when carrying sticky params", () => {
+    const router = createRouter(ROUTES, { stickyQuery: ["locale"] });
+    expect(router.withSticky("/w?locale=fr", "/w/42?tag=a&tag=b")).toBe(
+      "/w/42?locale=fr&tag=a&tag=b"
+    );
+  });
+
   it("builds breadcrumbs and active state from its own state", () => {
     const router = createRouter(ROUTES, { meta: META });
 

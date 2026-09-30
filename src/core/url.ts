@@ -200,6 +200,17 @@ export function selectQuery(url: string, keys: readonly KeyMatcher[]): ParsedQue
   return out;
 }
 
+/**
+ * Carry `carried` params onto `to`. Keys already on `to` win, and repeated
+ * keys (`?tag=a&tag=b`) survive — `Object.fromEntries` would keep only the last.
+ *
+ *   carryQuery("/w?tag=a&tag=b", { locale: "fr" }) -> "/w?locale=fr&tag=a&tag=b"
+ */
+export function carryQuery(to: string, carried: ParsedQuery): string {
+  const { path, query, hash } = splitUrl(to);
+  return path + buildQuery({ ...carried, ...parseQuery(query) }) + hash;
+}
+
 /* -------------------------------------------------
  * Path normalization
  * ------------------------------------------------- */

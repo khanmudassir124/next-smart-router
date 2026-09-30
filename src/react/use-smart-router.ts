@@ -8,13 +8,7 @@ import { emitNavigation, runGuards, type NavigationType } from "../core/events";
 import { fsBackPathSafe } from "../core/fs-back";
 import { resolvePath } from "../core/resolve-path";
 import { routeExists } from "../core/route-matcher";
-import {
-  buildQuery,
-  selectQuery,
-  splitUrl,
-  withQuery,
-  type QueryInput,
-} from "../core/url";
+import { carryQuery, selectQuery, withQuery, type QueryInput } from "../core/url";
 import { writeFlash, writeTransfer, type FlashMessage } from "../core/transfer";
 import type { TransferStrategy } from "../core/config";
 import { applyShallowUrl } from "./use-location";
@@ -138,14 +132,7 @@ export function useSmartRouter(): SmartRouter {
       if (keep !== false) {
         const keys = [...config.stickyQuery, ...(Array.isArray(keep) ? keep : [])];
         if (keys.length) {
-          const carried = selectQuery(current, keys);
-          const explicit = splitUrl(href).query;
-          const existing = explicit
-            ? Object.fromEntries(new URLSearchParams(explicit.slice(1)))
-            : {};
-          const merged: QueryInput = { ...carried, ...existing };
-          const parts = splitUrl(href);
-          href = parts.path + buildQuery(merged) + parts.hash;
+          href = carryQuery(href, selectQuery(current, keys));
         }
       }
 

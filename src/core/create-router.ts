@@ -10,11 +10,9 @@
 import {
   applyBasePath,
   applyTrailingSlash,
-  buildQuery,
   normalizePath,
+  carryQuery,
   selectQuery,
-  splitUrl,
-  type QueryInput,
 } from "./url";
 import {
   compareSpecificity,
@@ -149,14 +147,8 @@ export function createRouter(
       const carried = selectQuery(from, config.stickyQuery);
       if (Object.keys(carried).length === 0) return to;
 
-      const target = splitUrl(to);
-      const existing = target.query
-        ? Object.fromEntries(new URLSearchParams(target.query.slice(1)))
-        : {};
-
       // Explicit params on the target win over carried ones.
-      const merged: QueryInput = { ...carried, ...existing };
-      return target.path + buildQuery(merged) + target.hash;
+      return carryQuery(to, carried);
     },
 
     normalize: (path) => normalizePath(path, config),

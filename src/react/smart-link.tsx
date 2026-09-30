@@ -19,13 +19,7 @@ import { isActive as isActiveCore, type IsActiveOptions } from "../core/is-activ
 import { resolvePath } from "../core/resolve-path";
 import { writeFlash, writeTransfer, type FlashMessage } from "../core/transfer";
 import type { TransferStrategy } from "../core/config";
-import {
-  buildQuery,
-  selectQuery,
-  splitUrl,
-  withQuery,
-  type QueryInput,
-} from "../core/url";
+import { carryQuery, selectQuery, withQuery, type QueryInput } from "../core/url";
 
 /** When a link starts prefetching. */
 export type PrefetchStrategy = "render" | "hover" | "viewport" | false;
@@ -116,12 +110,7 @@ export const SmartLink = forwardRef<HTMLAnchorElement, SmartLinkProps>(
           ...(Array.isArray(keepQuery) ? keepQuery : []),
         ];
         if (keys.length) {
-          const carried = selectQuery(current, keys);
-          const parts = splitUrl(next);
-          const explicit = parts.query
-            ? Object.fromEntries(new URLSearchParams(parts.query.slice(1)))
-            : {};
-          next = parts.path + buildQuery({ ...carried, ...explicit }) + parts.hash;
+          next = carryQuery(next, selectQuery(current, keys));
         }
       }
 

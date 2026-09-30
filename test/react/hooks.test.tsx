@@ -193,6 +193,21 @@ describe("useSmartRouter", () => {
     );
   });
 
+  it("Q-05: keeps repeated keys on the target while carrying sticky ones", async () => {
+    initializeSmartRouter({ routes: ROUTES, stickyQuery: ["locale"], force: true });
+    setLocation("/w/42/settings?locale=fr");
+
+    const { result } = renderHook(() => useSmartRouter());
+    act(() => result.current.push("../members?tag=a&tag=b"));
+
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith(
+        "/w/42/members?locale=fr&tag=a&tag=b",
+        expect.anything()
+      )
+    );
+  });
+
   it("Q-05: keepQuery false opts out", async () => {
     initializeSmartRouter({ routes: ROUTES, stickyQuery: ["locale"], force: true });
     setLocation("/w/42/settings?locale=fr");
@@ -478,6 +493,16 @@ describe("SmartLink", () => {
     render(<SmartLink href="../members">Members</SmartLink>);
     expect(screen.getByText("Members").getAttribute("href")).toBe(
       "/w/42/members?locale=fr"
+    );
+  });
+
+  it("Q-05: keeps repeated keys on the href while carrying sticky ones", () => {
+    initializeSmartRouter({ routes: ROUTES, stickyQuery: ["locale"], force: true });
+    setLocation("/w/42/settings?locale=fr");
+
+    render(<SmartLink href="../members?tag=a&tag=b">Members</SmartLink>);
+    expect(screen.getByText("Members").getAttribute("href")).toBe(
+      "/w/42/members?locale=fr&tag=a&tag=b"
     );
   });
 });
