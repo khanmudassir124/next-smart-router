@@ -2,7 +2,8 @@ import { warnIfUninitialized } from "./dev-warn";
 import { matchRouteIn } from "./route-matcher";
 import { getRouteState } from "./route-registry";
 import { safeDecode, sentenceCase, titleCase, toSegments } from "./segments";
-import { normalizePath } from "./url";
+import type { RouteState } from "./route-state";
+import { localeOf, normalizePath, withLocale } from "./url";
 
 export interface Breadcrumb {
   /** Display text. Decoded, and formatted per `format` / `labelFor`. */
@@ -21,7 +22,10 @@ export interface Breadcrumb {
 }
 
 export interface BreadcrumbOptions {
-  /** Static label overrides, keyed by href *or* by raw segment. */
+  /**
+   * Static label overrides, keyed by href (with or without its locale prefix)
+   * or by raw segment.
+   */
   labels?: Record<string, string>;
   /** Full control over the label. Wins over `labels`. */
   labelFor?: (crumb: Omit<Breadcrumb, "label">) => string;
@@ -61,8 +65,22 @@ export function getBreadcrumbs(
   options: BreadcrumbOptions = {}
 ): Breadcrumb[] {
   warnIfUninitialized("getBreadcrumbs");
+  return breadcrumbsIn(getRouteState(), pathname, options);
+}
 
-  const state = getRouteState();
+/**
+ * {@link getBreadcrumbs} against an explicit state — what `createRouter` uses.
+ *
+ * Crumb hrefs are Next-relative: the locale is kept (the App Router adds none)
+ * and `basePath` is not added, because they are made to be rendered with
+ * `<Link>` / `<SmartLink>`, which add it themselves.
+ */
+export function breadcrumbsIn(
+  state: RouteState,
+  pathname: string,
+  options: BreadcrumbOptions = {}
+): Breadcrumb[] {
+  const locale = localeOf(pathname, state.config);
   const normalized = normalizePath(pathname, state.config);
   const parts = toSegments(normalized);
   const crumbs: Breadcrumb[] = [];
@@ -70,7 +88,7 @@ export function getBreadcrumbs(
   if (options.includeRoot) {
     crumbs.push({
       label: options.rootLabel ?? "Home",
-      href: "/",
+      href: withLocale("/", locale),
       segment: "",
       pattern: "/",
       isCurrent: parts.length === 0,
@@ -79,8 +97,9 @@ export function getBreadcrumbs(
   }
 
   for (let i = 0; i < parts.length; i++) {
-    const href = "/" + parts.slice(0, i + 1).join("/");
-    const match = matchRouteIn(state, href);
+    const path = "/" + parts.slice(0, i + 1).join("/");
+    const href = withLocale(path, locale);
+    const match = matchRouteIn(state, path);
     const matched = match !== null;
 
     if (!matched && options.unmatched !== "text") continue;
@@ -103,6 +122,7 @@ export function getBreadcrumbs(
       label:
         options.labelFor?.(base) ??
         options.labels?.[href] ??
+        options.labels?.[path] ??
         options.labels?.[segment] ??
         match?.meta?.title ??
         formatLabel(segment, options.format),

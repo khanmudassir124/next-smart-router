@@ -264,6 +264,62 @@ function stripTrailingSlash(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+/**
+ * The locale prefix of `url`, if it has one of `options.locales` — the part
+ * {@link normalizePath} strips. Read before normalizing so it can be put back.
+ */
+export function localeOf(
+  url: string,
+  options: NormalizeOptions = {}
+): string | undefined {
+  if (!options.locales?.length) return undefined;
+
+  let path = splitUrl(url).path;
+  const base = options.basePath ? stripTrailingSlash(options.basePath) : "";
+  if (base && (path === base || path.startsWith(base + "/"))) {
+    path = path.slice(base.length);
+  }
+
+  const first = toSegments(path)[0];
+  return first !== undefined && options.locales.includes(first) ? first : undefined;
+}
+
+/**
+ * Put a locale prefix back on a normalized path. The App Router has no
+ * built-in i18n routing, so `<Link>` and `router.push` add none: an output
+ * that dropped it would navigate out of the user's locale.
+ */
+export function withLocale(url: string, locale?: string): string {
+  if (!locale) return url;
+  const { path, query, hash } = splitUrl(url);
+  return "/" + locale + (path === "/" ? "" : path) + query + hash;
+}
+
+/**
+ * Prefix `basePath` unconditionally. For internal paths, which never carry it
+ * — unlike {@link applyBasePath}, which leaves an already-prefixed path alone
+ * and so gets a route that itself starts with the basePath's text wrong
+ * (basePath `/docs`, route `/docs/intro`).
+ */
+export function prefixBasePath(url: string, basePath?: string): string {
+  const base = basePath ? stripTrailingSlash(basePath) : "";
+  if (!base) return url;
+  const { path, query, hash } = splitUrl(url);
+  return base + (path === "/" ? "" : path) + query + hash;
+}
+
+/**
+ * Turn a Next-relative path into a full URL path: `trailingSlash` and
+ * `basePath` applied. What the URL-shaped outputs (`buildHref`,
+ * `fsBackPathSafe`, `getNearestStaticRoute`) return.
+ */
+export function toUrlPath(
+  url: string,
+  config: { basePath?: string; trailingSlash?: boolean }
+): string {
+  return prefixBasePath(applyTrailingSlash(url, config.trailingSlash), config.basePath);
+}
+
 /** Add or remove a trailing slash to match a `trailingSlash` config. */
 export function applyTrailingSlash(url: string, trailingSlash?: boolean): string {
   if (!trailingSlash) return url;

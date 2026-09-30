@@ -7,21 +7,8 @@
  * sets in one process, and in plain Node scripts.
  */
 
-import {
-  applyBasePath,
-  applyTrailingSlash,
-  normalizePath,
-  carryQuery,
-  selectQuery,
-} from "./url";
-import {
-  compareSpecificity,
-  isStaticRoute,
-  safeDecode,
-  sentenceCase,
-  titleCase,
-  toSegments,
-} from "./segments";
+import { carryQuery, normalizePath, selectQuery, toUrlPath } from "./url";
+import { compareSpecificity, isStaticRoute, toSegments } from "./segments";
 import { matchPatternParams, matchRouteIn, type RouteMatch } from "./route-matcher";
 import {
   createRouteState,
@@ -32,7 +19,9 @@ import {
 import { resolvePath } from "./resolve-path";
 import { buildHref, type BuildHrefOptions } from "./build-href";
 import type { BuildParamsOf, ParamsOf, Route } from "./typed-routes";
-import type { Breadcrumb, BreadcrumbOptions } from "./breadcrumbs";
+import { breadcrumbsIn, type Breadcrumb, type BreadcrumbOptions } from "./breadcrumbs";
+import { fsBackIn } from "./fs-back";
+import { nearestStaticIn } from "./get-nearest-static-route";
 import { isActiveIn, type IsActiveOptions } from "./is-active";
 
 export interface SmartRouterInstance {
@@ -87,9 +76,6 @@ export function createRouter(
   const state = createRouteState(routes, options);
   const config = state.config;
 
-  const out = (path: string): string =>
-    applyBasePath(applyTrailingSlash(path, config.trailingSlash), config.basePath);
-
   const instance: SmartRouterInstance = {
     state,
     routes: state.ordered,
@@ -105,36 +91,16 @@ export function createRouter(
     },
 
     build: (route, params, buildOptions) =>
-      out(buildHref(route, params, { ...buildOptions, raw: true })),
+      toUrlPath(buildHref(route, params, { ...buildOptions, raw: true }), config),
 
     resolve: (current, target) => resolvePath(normalizePath(current, config), target),
 
-    fsBack: (path, levels = 1) => {
-      const parts = toSegments(normalizePath(path, config));
-      for (let i = 0; i < Math.max(1, levels) && parts.length > 0; i++) parts.pop();
+    fsBack: (path, levels = 1) => toUrlPath(fsBackIn(state, path, { levels }), config),
 
-      while (parts.length > 0) {
-        const candidate = "/" + parts.join("/");
-        if (matchRouteIn(state, candidate)) return out(candidate);
-        parts.pop();
-      }
-      return out("/");
-    },
+    nearestStatic: (path, nearestOptions = {}) =>
+      toUrlPath(nearestStaticIn(state, path, nearestOptions), config),
 
-    nearestStatic: (path, nearestOptions = {}) => {
-      const parts = toSegments(normalizePath(path, config));
-      if (nearestOptions.includeSelf === false) parts.pop();
-
-      while (parts.length > 0) {
-        const candidate = "/" + parts.join("/");
-        if (state.staticRoutes.includes(candidate)) return out(candidate);
-        parts.pop();
-      }
-      return out("/");
-    },
-
-    breadcrumbs: (path, crumbOptions = {}) =>
-      buildBreadcrumbs(state, path, crumbOptions),
+    breadcrumbs: (path, crumbOptions = {}) => breadcrumbsIn(state, path, crumbOptions),
 
     isActive: (path, target, activeOptions = {}) =>
       isActiveIn(state, path, target, activeOptions),
@@ -155,75 +121,6 @@ export function createRouter(
   };
 
   return instance;
-}
-
-/* -------------------------------------------------
- * Shared implementations (state passed in explicitly)
- * ------------------------------------------------- */
-
-function buildBreadcrumbs(
-  state: RouteState,
-  pathname: string,
-  options: BreadcrumbOptions
-): Breadcrumb[] {
-  const normalized = normalizePath(pathname, state.config);
-  const parts = toSegments(normalized);
-  const crumbs: Breadcrumb[] = [];
-
-  const format = (segment: string): string => {
-    if (options.format === "title") return titleCase(segment);
-    if (options.format === "sentence") return sentenceCase(segment);
-    return segment;
-  };
-
-  if (options.includeRoot) {
-    crumbs.push({
-      label: options.rootLabel ?? "Home",
-      href: "/",
-      segment: "",
-      pattern: "/",
-      isCurrent: parts.length === 0,
-      matched: true,
-    });
-  }
-
-  for (let i = 0; i < parts.length; i++) {
-    const href = "/" + parts.slice(0, i + 1).join("/");
-    const match = matchRouteIn(state, href);
-    const matched = match !== null;
-
-    if (!matched && options.unmatched !== "text") continue;
-
-    const segment = safeDecode(parts[i]);
-    const pattern = match?.route ?? "";
-    const patternSeg = pattern ? toSegments(pattern)[i] : undefined;
-    const param =
-      patternSeg && patternSeg.startsWith("[")
-        ? patternSeg.replace(/\[|\]|\.\.\./g, "")
-        : undefined;
-
-    const base: Omit<Breadcrumb, "label"> = {
-      href,
-      segment,
-      pattern,
-      param,
-      isCurrent: i === parts.length - 1,
-      matched,
-    };
-
-    crumbs.push({
-      ...base,
-      label:
-        options.labelFor?.(base) ??
-        options.labels?.[href] ??
-        options.labels?.[segment] ??
-        match?.meta?.title ??
-        format(segment),
-    });
-  }
-
-  if (crumbs.length) crumbs[crumbs.length - 1].isCurrent = true;
-  return crumbs;
 }
 
 /* -------------------------------------------------

@@ -597,6 +597,32 @@ describe("basePath", () => {
   });
 });
 
+describe("locales", () => {
+  beforeEach(() => {
+    initializeSmartRouter({ routes: ROUTES, locales: ["en", "fr"], force: true });
+  });
+
+  it("fsBack stays in the user's locale", async () => {
+    setLocation("/fr/w/42/members");
+    const { result } = renderHook(() => useSmartRouter());
+
+    act(() => result.current.fsBack());
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith("/fr/w/42", { scroll: undefined })
+    );
+  });
+
+  it("root() goes to the locale's root", async () => {
+    setLocation("/fr/w/42");
+    const { result } = renderHook(() => useSmartRouter());
+
+    act(() => result.current.root());
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith("/fr", { scroll: undefined })
+    );
+  });
+});
+
 describe("query writes", () => {
   it("a write pending at unmount still lands, while on the same page", async () => {
     setLocation("/w");

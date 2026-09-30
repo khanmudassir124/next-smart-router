@@ -254,7 +254,9 @@ prefix as a parent (`/workspaces-archive` is not under `/workspaces`).
 
 ### `fsBackPathSafe(pathname, options?)`
 
-`{ levels, keepSticky }`. Walks up to the nearest route that exists.
+`{ levels, keepSticky }`. Walks up to the nearest route that exists. Returns a
+URL path, with the locale kept and `basePath` added. To navigate with the router, use
+`nav.fsBack()`, which leaves `basePath` to Next.
 
 ### `getNearestStaticRoute(pathname, options?)`
 

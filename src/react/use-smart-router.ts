@@ -8,7 +8,14 @@ import { emitNavigation, runGuards, type NavigationType } from "../core/events";
 import { fsBackPath } from "../core/fs-back";
 import { resolvePath } from "../core/resolve-path";
 import { routeExists } from "../core/route-matcher";
-import { carryQuery, selectQuery, withQuery, type QueryInput } from "../core/url";
+import {
+  carryQuery,
+  localeOf,
+  selectQuery,
+  withLocale,
+  withQuery,
+  type QueryInput,
+} from "../core/url";
 import { writeFlash, writeTransfer, type FlashMessage } from "../core/transfer";
 import type { TransferStrategy } from "../core/config";
 import { applyShallowUrl } from "./use-location";
@@ -226,7 +233,12 @@ export function useSmartRouter(): SmartRouter {
     [push]
   );
 
-  const root = useCallback((options?: NavigateOptions) => push("/", options), [push]);
+  // The locale's root, not the app's: "/" would leave the user's locale.
+  const root = useCallback(
+    (options?: NavigateOptions) =>
+      push(withLocale("/", localeOf(pathnameRef.current, getConfig())), options),
+    [push]
+  );
 
   const resolve = useCallback(
     (target: string) => resolvePath(readCurrentHref(pathnameRef.current), target),
