@@ -45,8 +45,14 @@ export type PatternMatch =
  * explorer and the matcher from drifting apart.
  */
 export function explainPatternMatch(path: string, pattern: string): PatternMatch {
-  const pathSegs = toSegments(path);
-  const routeSegs = toSegments(pattern);
+  return walkSegments(toSegments(path), toSegments(pattern));
+}
+
+/** The walk behind {@link explainPatternMatch}, on pre-split segments. */
+function walkSegments(
+  pathSegs: readonly string[],
+  routeSegs: readonly string[]
+): PatternMatch {
   const params: RouteParams = {};
 
   let i = 0;
@@ -130,13 +136,61 @@ export function matchRoutePattern(path: string, pattern: string): boolean {
  * Registry-aware matching
  * ------------------------------------------------- */
 
-function orderedCandidates(
-  state: RouteState,
-  routes?: Iterable<string>
-): readonly string[] {
-  if (!routes || routes === state.routes) return state.ordered;
-  // A caller-supplied collection carries no precomputed order.
-  return [...routes].sort(compareSpecificity);
+/** A dynamic route, pre-split, with the path depths it can possibly match. */
+interface CompiledRoute {
+  route: string;
+  segments: readonly string[];
+  minDepth: number;
+  maxDepth: number;
+}
+
+/** What {@link matchRouteIn} needs from a route state, computed once. */
+interface CompiledState {
+  /** Static routes by normalized path. An exact static match always wins. */
+  statics: Map<string, string>;
+  /** Dynamic routes, in resolution order. */
+  dynamic: CompiledRoute[];
+}
+
+// Keyed on the state object: a RouteState is immutable and replaced wholesale
+// on every change, so an entry can never go stale, and a dropped state takes
+// its entry with it.
+const compiledStates = new WeakMap<RouteState, CompiledState>();
+
+function compile(state: RouteState): CompiledState {
+  const cached = compiledStates.get(state);
+  if (cached) return cached;
+
+  const compiled: CompiledState = { statics: new Map(), dynamic: [] };
+
+  for (const route of state.ordered) {
+    const segments = toSegments(route);
+
+    if (!segments.some(isDynamic)) {
+      // `ordered` is most specific first, so the first spelling of a path wins,
+      // exactly as the linear walk would have it.
+      const key = "/" + segments.join("/");
+      if (!compiled.statics.has(key)) compiled.statics.set(key, route);
+      continue;
+    }
+
+    const last = segments[segments.length - 1];
+    const tail = isCatchAll(last) || isOptionalCatchAll(last);
+    compiled.dynamic.push({
+      route,
+      segments,
+      minDepth: isOptionalCatchAll(last) ? segments.length - 1 : segments.length,
+      maxDepth: tail ? Infinity : segments.length,
+    });
+  }
+
+  compiledStates.set(state, compiled);
+  return compiled;
+}
+
+function toMatch(state: RouteState, route: string, params: RouteParams): RouteMatch {
+  const meta = state.meta[route];
+  return meta ? { route, params, meta } : { route, params };
 }
 
 /**
@@ -152,12 +206,30 @@ export function matchRouteIn(
 ): RouteMatch | null {
   const normalized = normalizePath(path, state.config);
 
-  for (const route of orderedCandidates(state, routes)) {
-    const params = matchPatternParams(normalized, route);
-    if (!params) continue;
+  if (routes && routes !== state.routes) {
+    // A caller-supplied collection carries no precomputed order.
+    for (const route of [...routes].sort(compareSpecificity)) {
+      const params = matchPatternParams(normalized, route);
+      if (params) return toMatch(state, route, params);
+    }
+    return null;
+  }
 
-    const meta = state.meta[route];
-    return meta ? { route, params, meta } : { route, params };
+  // Same answer as walking `state.ordered` front to back, without the walk:
+  // a static route that equals the path outranks every dynamic one, and a
+  // dynamic route whose depth range excludes the path cannot match it.
+  const { statics, dynamic } = compile(state);
+  const pathSegs = toSegments(normalized);
+
+  const exact = statics.get("/" + pathSegs.join("/"));
+  if (exact !== undefined) return toMatch(state, exact, {});
+
+  const depth = pathSegs.length;
+  for (const candidate of dynamic) {
+    if (depth < candidate.minDepth || depth > candidate.maxDepth) continue;
+
+    const result = walkSegments(pathSegs, candidate.segments);
+    if (result.matched) return toMatch(state, candidate.route, result.params);
   }
 
   return null;
