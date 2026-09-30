@@ -1,17 +1,52 @@
 name: CI
 
-# Runs on every PR and every push to main. The release workflow depends on
-# this having passed — before, the first test run was the one that published.
+# Runs on every PR. On main it runs as the first stage of release.yml, which
+# publishes only when every job here has passed — so there is no separate
+# `push: main` trigger to run it twice.
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+
+# Under workflow_call this caps the caller's write permissions: nothing in CI
+# needs to write.
+permissions:
+  contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # github.workflow is the CALLER's name under workflow_call, so a release run
+  # and a PR run can never cancel each other.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # A PR that changes what ships must say how it versions. Without a changeset
+  # a merge publishes nothing, and the change sits unreleased on main.
+  changeset:
+    name: changeset present
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a changeset when the package changes
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: |
+          if git diff --quiet "$BASE"...HEAD -- src package.json; then
+            echo "No changes to src/ or package.json — no changeset needed."
+            exit 0
+          fi
+          if git diff --name-only --diff-filter=A "$BASE"...HEAD -- .changeset \
+              | grep -E '\.md$' | grep -v 'README\.md$' | grep -q .; then
+            echo "Changeset found."
+            exit 0
+          fi
+          echo "::error::This PR changes the published package but adds no changeset. Run 'npx changeset' and commit the file — or 'npx changeset --empty' if it should not release."
+          exit 1
+
   verify:
     name: node ${{ matrix.node }} · next ${{ matrix.next }} · react ${{ matrix.react }}
     runs-on: ubuntu-latest

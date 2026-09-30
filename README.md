@@ -556,7 +556,7 @@ the invariants worth knowing before changing the core.
 
 ```bash
 npm install
-npm test          # 178 tests
+npm test
 npm run build     # ESM + CJS + types, then re-adds "use client"
 npm run lint:package
 ```
@@ -568,8 +568,10 @@ version bump follows the change instead of always being a patch:
 npx changeset     # patch | minor | major + a one-line summary
 ```
 
-Commit the generated file with your PR. On merge to `main`, CI publishes to npm
-via OIDC trusted publishing — there is no token to rotate.
+Commit the generated file with your PR. Merging to `main` publishes it: CI runs
+in full, the version is bumped and committed, and the package goes to npm over
+OIDC trusted publishing — no token to rotate, and no release PR to merge. See
+[CONTRIBUTING.md](./CONTRIBUTING.md#releasing).
 
 ## License
 
