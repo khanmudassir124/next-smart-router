@@ -65,6 +65,7 @@ import {
   useRoute,
   useRouteState,
   useSmartRouter,
+  SmartRouterDevtools,
 } from "../../src/react";
 
 const ROUTES = [
@@ -478,5 +479,59 @@ describe("SmartLink", () => {
     expect(screen.getByText("Members").getAttribute("href")).toBe(
       "/w/42/members?locale=fr"
     );
+  });
+});
+
+/* -------------------------------------------------
+ * SmartRouterDevtools
+ *
+ * REGRESSION PIN. The overlay computes its near-miss list and its
+ * "rank N/total" inline today. Both are about to move behind explainIn().
+ * These tests describe the CURRENT rendered output so the refactor cannot
+ * change it silently.
+ * ------------------------------------------------- */
+
+describe("SmartRouterDevtools", () => {
+  // Overlapping patterns, so there is a real near miss to pin. The repo-wide
+  // ROUTES fixture has none at any path.
+  const OVERLAPPING = ["/", "/w/[id]", "/w/[id]/[tab]", "/w/[id]/settings"];
+
+  beforeEach(() => {
+    initializeSmartRouter({ routes: OVERLAPPING, force: true });
+    setLocation("/w/42/settings");
+  });
+
+  it("D-01: reports the matched route with its rank out of the ordered total", () => {
+    render(<SmartRouterDevtools defaultOpen />);
+
+    // Specificity order is: / , /w/[id] , /w/[id]/settings , /w/[id]/[tab]
+    // so the static-tail winner sits third of four.
+    //
+    // The label reads "nsr rank", not "rank", on purpose: this ordering is the
+    // library's own and it does NOT match Next's, which groups by trie branch.
+    // Saying whose rank it is costs nothing and stops the number being read as
+    // a claim about the framework.
+    expect(screen.getByText(/\/w\/\[id\]\/settings\s+\(nsr rank 3\/4\)/)).toBeTruthy();
+  });
+
+  it("D-02: lists the patterns that also matched but lost", () => {
+    render(<SmartRouterDevtools defaultOpen />);
+
+    expect(screen.getByText("also matched")).toBeTruthy();
+    expect(screen.getByText("/w/[id]/[tab]")).toBeTruthy();
+  });
+
+  it("D-03: shows no near-miss row when nothing else matched", () => {
+    initializeSmartRouter({ routes: ["/", "/w/[id]/settings"], force: true });
+    render(<SmartRouterDevtools defaultOpen />);
+
+    expect(screen.queryByText("also matched")).toBeNull();
+  });
+
+  it("D-04: renders an em dash for a path no route matches", () => {
+    setLocation("/nothing/here");
+    render(<SmartRouterDevtools defaultOpen />);
+
+    expect(screen.getByText("no match")).toBeTruthy();
   });
 });

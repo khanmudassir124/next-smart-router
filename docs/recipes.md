@@ -56,8 +56,9 @@ export const workspaceSearch = defineSearchParams({
 ```
 
 ```tsx
-// page.tsx (server)
-const { tab, page } = workspaceSearch.parse(searchParams);
+// page.tsx (server) — Next 15 makes `searchParams` a Promise, so await it
+const { tab, page } = workspaceSearch.parse(await searchParams);
+// Next 14 and earlier: workspaceSearch.parse(searchParams)
 
 // controls.tsx (client)
 const [{ tab, page }, set] = useQueryStates(workspaceSearch);

@@ -29,7 +29,7 @@ The registry sorts once at registration and every matcher reads that order, so
 registered. Getting this wrong is subtle: the catch-all matches, so nothing
 errors — you just get the wrong params.
 
-`getOrderedRoutes()` exposes the order; the devtools panel shows a route's rank
+`getOrderedRoutes()` exposes the order; the devtools panel shows a route's `nsr rank`
 and which patterns also matched but lost.
 
 ## Normalization

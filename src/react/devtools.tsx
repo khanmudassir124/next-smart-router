@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 
-import { getConfig } from "../core/config";
 import { subscribeNavigation, type NavigationEvent } from "../core/events";
-import { matchPatternParams, matchRoute } from "../core/route-matcher";
-import { getOrderedRoutes, hasRoutes } from "../core/route-registry";
+import { explainIn } from "../core/explain";
+import { getRouteState, hasRoutes } from "../core/route-registry";
 import { readTransfer } from "../core/transfer";
-import { normalizePath, selectQuery } from "../core/url";
 import { useLocationSearch } from "./use-location";
 
 export interface SmartRouterDevtoolsProps {
@@ -19,6 +17,7 @@ export interface SmartRouterDevtoolsProps {
 }
 
 const MAX_LOG = 12;
+const MAX_NEAR_MISSES = 5;
 
 /**
  * A development overlay showing what the router actually resolved.
@@ -47,23 +46,20 @@ export function SmartRouterDevtools({
     []
   );
 
-  const config = getConfig();
   const href = search ? `${pathname}?${search}` : pathname;
 
-  const match = useMemo(() => matchRoute(pathname), [pathname]);
+  // One call answers every row below. `explainIn` walks the ordered routes
+  // once and reports the winner, its rank, everything that also matched, and
+  // the sticky selection — so this overlay no longer reimplements any of it.
+  const explanation = useMemo(() => explainIn(getRouteState(), href), [href]);
 
-  const nearMisses = useMemo(() => {
-    const normalized = normalizePath(pathname, config);
-    return getOrderedRoutes()
-      .filter(
-        (route) =>
-          route !== match?.route && matchPatternParams(normalized, route) !== null
-      )
-      .slice(0, 5);
-  }, [pathname, match, config]);
-
-  const rank = match ? getOrderedRoutes().indexOf(match.route) + 1 : 0;
-  const sticky = selectQuery(href, config.stickyQuery);
+  const match = explanation.winner;
+  const rank = match?.rank ?? 0;
+  const sticky = explanation.stickyQuery;
+  // Core returns these uncapped; capping is the view's business.
+  const nearMisses = explanation.nearMisses
+    .slice(0, MAX_NEAR_MISSES)
+    .map((n) => n.route);
   const transfer = typeof window === "undefined" ? undefined : readTransfer(href);
 
   const [vertical, horizontal] = position.split("-") as [
@@ -122,9 +118,7 @@ export function SmartRouterDevtools({
           <Row
             label="matched"
             value={
-              match
-                ? `${match.route}   (rank ${rank}/${getOrderedRoutes().length})`
-                : "—"
+              match ? `${match.route}   (nsr rank ${rank}/${explanation.total})` : "—"
             }
             accent={match ? "#57c6b0" : "#e9877b"}
           />

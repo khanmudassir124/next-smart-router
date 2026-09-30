@@ -129,6 +129,93 @@ const router = createRouter(ROUTES, { basePath: "/app", meta: META });
 Finds catch-alls that aren't final, conflicting dynamic segment names at one
 level, and duplicates.
 
+It can only see the route list it is given. Two folders resolving to the same
+path collapse into one entry before they reach it, so that case is detected by
+the CLI instead, from `collectRoutes(appDir).sources` — see
+[the CLI docs](./cli.md#two-folders-one-path).
+
+---
+
+## Explaining a resolution
+
+### `explainIn(state, href): RouteExplanation`
+
+Why a URL resolved the way it did. Walks the ordered routes once and reports
+the winner, everything that also matched and lost, and the reason each of the
+rest was rejected.
+
+```ts
+const state = createRouteState(ROUTES);
+const { winner, nearMisses, total } = explainIn(state, "/w/42/settings");
+
+winner?.route; //  "/w/[id]/settings"
+winner?.rank; //   3   (of `total`, in this library's specificity order)
+nearMisses; //     [{ route: "/w/[id]/[tab]", params: { id: "42", tab: "settings" }, rank: 4 }]
+```
+
+Takes a `RouteState` rather than a route list, because `createRouteState` sorts
+on every call and this runs on every navigation in the devtools overlay. Same
+reason `matchRouteIn` takes state.
+
+`winner.rank` is **this library's** ordering. Next groups routes by trie branch
+and this compares segment ranks left to right, so the two orderings differ for
+routes in different branches. They agree on which route _wins_; they disagree on
+the position number. Label it as the library's rank if you show it to anyone.
+
+Returns a `RouteExplanation`:
+
+| Field         | Meaning                                                         |
+| ------------- | --------------------------------------------------------------- |
+| `winner`      | `ExplainedWinner` (`route`, `params`, `rank`, `meta`) or `null` |
+| `candidates`  | Every route tried, in order, as `ExplainedCandidate`            |
+| `nearMisses`  | `ExplainedNearMiss[]` — matched but lost, uncapped              |
+| `stickyQuery` | What `stickyQuery` would carry across a navigation              |
+| `total`       | How many patterns were considered; the denominator for `rank`   |
+
+A rejected `ExplainedCandidate` carries a `RejectReason`: `"catch-all-not-last"`,
+`"catch-all-empty"`, `"path-too-short"`, `"literal-mismatch"` or
+`"path-too-long"`, plus the `atSegment` index that decided it.
+
+### `explain(href, routes, options?): RouteExplanation`
+
+Convenience wrapper that builds the state per call. Fine for one-offs; for
+anything repeated, build the state once and use `explainIn`.
+
+---
+
+## Finding dead routes
+
+### `findUnreachableRoutes(routes, options?): UnreachableRoute[]`
+
+Route patterns that **no URL can reach**, because a more specific sibling
+shadows them at every depth they could serve. Next does not report this, and it
+is invisible in a folder tree: the page file exists, so the route looks fine.
+
+```ts
+findUnreachableRoutes(["/w/[id]", "/w/[other]"]);
+// [{ route: "/w/[other]",
+//    witnesses: [{ url: "/w/__nsr0", wonBy: "/w/[id]" }] }]
+```
+
+Each `UnreachableRoute` carries the `UnreachableWitness[]` that were tried and
+what beat each one, so the result is a proof rather than an accusation.
+
+The method is to synthesize witness URLs for a pattern and resolve them against
+the whole set. Fillers are fresh tokens that collide with no static segment
+anywhere in the set; catch-alls are witnessed one level deeper than the deepest
+route; optional catch-alls keep their zero-segment form. A pattern is reported
+only when every witness loses. Validated at zero false positives across 18,000+
+route sets that Next's own sorter accepts, checked against exhaustive search.
+
+> **This sees only the manifest.** A page reachable solely through a
+> `next.config` rewrite or middleware has no witness here and will be reported.
+> Say so wherever you surface the result, and check before deleting anything.
+
+`options` is a `FindUnreachableOptions` — the same `basePath` / `locales` /
+`stickyQuery` config `createRouteState` takes. Also surfaced by
+`next-smart-router generate --check`, as a warning that does not change the exit
+code.
+
 ---
 
 ## Building paths

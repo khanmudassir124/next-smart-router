@@ -152,8 +152,9 @@ export const workspaceSearch = defineSearchParams({
   page: parseAsInt.default(1),
 });
 
-// server component
-const { tab, page } = workspaceSearch.parse(searchParams);
+// server component — Next 15 makes `searchParams` a Promise, so await it
+const { tab, page } = workspaceSearch.parse(await searchParams);
+// Next 14 and earlier: workspaceSearch.parse(searchParams)
 
 // client component — same definition, no drift
 const [{ tab, page }, set] = useQueryStates(workspaceSearch);
@@ -281,9 +282,14 @@ subscribeNavigation((e) => analytics.page(e.route, { ...e.params, ...e.search })
 }
 ```
 
-The devtools panel shows the matched pattern, its specificity rank, params,
-sticky params, the transfer payload, and — the useful one — which other
-patterns also matched but lost.
+The devtools panel shows the matched pattern, its `nsr rank`, params, sticky
+params, the transfer payload, and — the useful one — which other patterns also
+matched but lost.
+
+The rank is labelled `nsr` because it is **this library's** specificity order,
+not Next's. Next groups routes by trie branch; this compares segment ranks left
+to right. The two agree on which route wins and disagree on its position number,
+so the label keeps you from reading it as a claim about the framework.
 
 ---
 

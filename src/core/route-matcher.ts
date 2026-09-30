@@ -24,14 +24,27 @@ export interface RouteMatch {
   meta?: RouteMeta;
 }
 
+/** Why a pattern failed to match. One member per rejection in the walk below. */
+export type RejectReason =
+  | "catch-all-not-last"
+  | "catch-all-empty"
+  | "path-too-short"
+  | "literal-mismatch"
+  | "path-too-long";
+
+export type PatternMatch =
+  | { matched: true; params: RouteParams }
+  | { matched: false; reason: RejectReason; atSegment: number };
+
 /**
- * Match a concrete path against a single route pattern and capture its params.
+ * Walk a path against one pattern, reporting either the captured params or the
+ * segment index and rule that rejected it.
  *
- * Returns `null` when the pattern does not match. Catch-all values are decoded
- * segment by segment, and an empty optional catch-all captures `undefined` —
- * both matching Next.js semantics.
+ * This is the single implementation; {@link matchPatternParams} is a thin
+ * wrapper over it. Keeping one walk is what stops the devtools overlay, the
+ * explorer and the matcher from drifting apart.
  */
-export function matchPatternParams(path: string, pattern: string): RouteParams | null {
+export function explainPatternMatch(path: string, pattern: string): PatternMatch {
   const pathSegs = toSegments(path);
   const routeSegs = toSegments(pattern);
   const params: RouteParams = {};
@@ -44,21 +57,30 @@ export function matchPatternParams(path: string, pattern: string): RouteParams |
 
     if (isOptionalCatchAll(routeSeg)) {
       // Consumes the rest, including nothing. Must be the final segment.
-      if (i !== routeSegs.length - 1) return null;
+      if (i !== routeSegs.length - 1) {
+        return { matched: false, reason: "catch-all-not-last", atSegment: i };
+      }
       const rest = pathSegs.slice(j);
       params[getParamName(routeSeg)] = rest.length ? rest.map(safeDecode) : undefined;
-      return params;
+      return { matched: true, params };
     }
 
     if (isCatchAll(routeSeg)) {
       // Consumes one or more remaining segments. Must be the final segment.
-      if (i !== routeSegs.length - 1 || j >= pathSegs.length) return null;
+      if (i !== routeSegs.length - 1) {
+        return { matched: false, reason: "catch-all-not-last", atSegment: i };
+      }
+      if (j >= pathSegs.length) {
+        return { matched: false, reason: "catch-all-empty", atSegment: i };
+      }
       params[getParamName(routeSeg)] = pathSegs.slice(j).map(safeDecode);
-      return params;
+      return { matched: true, params };
     }
 
     const pathSeg = pathSegs[j];
-    if (pathSeg === undefined) return null;
+    if (pathSeg === undefined) {
+      return { matched: false, reason: "path-too-short", atSegment: i };
+    }
 
     if (isDynamic(routeSeg)) {
       params[getParamName(routeSeg)] = safeDecode(pathSeg);
@@ -67,14 +89,30 @@ export function matchPatternParams(path: string, pattern: string): RouteParams |
       continue;
     }
 
-    if (routeSeg !== pathSeg) return null;
+    if (routeSeg !== pathSeg) {
+      return { matched: false, reason: "literal-mismatch", atSegment: i };
+    }
 
     i++;
     j++;
   }
 
   // All route segments consumed — the path must be fully consumed too.
-  return j === pathSegs.length ? params : null;
+  return j === pathSegs.length
+    ? { matched: true, params }
+    : { matched: false, reason: "path-too-long", atSegment: routeSegs.length };
+}
+
+/**
+ * Match a concrete path against a single route pattern and capture its params.
+ *
+ * Returns `null` when the pattern does not match. Catch-all values are decoded
+ * segment by segment, and an empty optional catch-all captures `undefined` —
+ * both matching Next.js semantics.
+ */
+export function matchPatternParams(path: string, pattern: string): RouteParams | null {
+  const result = explainPatternMatch(path, pattern);
+  return result.matched ? result.params : null;
 }
 
 /**

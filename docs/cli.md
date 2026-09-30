@@ -8,18 +8,18 @@ Walks a Next.js `app/` directory and writes a route manifest.
 
 ## Options
 
-| Flag                           | Default                | What it does                                          |
-| ------------------------------ | ---------------------- | ----------------------------------------------------- |
-| `--app-dir <path>`             | `./app`                | Root of the app directory                             |
-| `--out, -o <path>`             | `./route-manifest.ts`  | Output. `.json` emits JSON, anything else a TS module |
-| `--page-extensions <list>`     | `tsx,ts,jsx,js,mdx,md` | Mirrors `pageExtensions` from `next.config`           |
-| `--ignore <list>`              | —                      | Comma-separated directory names to skip               |
-| `--watch, -w`                  | —                      | Regenerate on change (debounced 100ms)                |
-| `--check`                      | —                      | Exit non-zero if the manifest is stale or conflicted  |
-| `--no-types`                   | —                      | Skip the `Route` union                                |
-| `--no-meta`                    | —                      | Skip `route.meta.json` sidecars                       |
-| `--silent`                     | —                      | Suppress output                                       |
-| `-h, --help` / `-v, --version` | —                      |                                                       |
+| Flag                           | Default                | What it does                                                                              |
+| ------------------------------ | ---------------------- | ----------------------------------------------------------------------------------------- |
+| `--app-dir <path>`             | `./app`                | Root of the app directory                                                                 |
+| `--out, -o <path>`             | `./route-manifest.ts`  | Output. `.json` emits JSON, anything else a TS module                                     |
+| `--page-extensions <list>`     | `tsx,ts,jsx,js,mdx,md` | Mirrors `pageExtensions` from `next.config`                                               |
+| `--ignore <list>`              | —                      | Comma-separated directory names to skip                                                   |
+| `--watch, -w`                  | —                      | Regenerate on change (debounced 100ms)                                                    |
+| `--check`                      | —                      | Exit non-zero if the manifest is stale or conflicted; also warns about unreachable routes |
+| `--no-types`                   | —                      | Skip the `Route` union                                                                    |
+| `--no-meta`                    | —                      | Skip `route.meta.json` sidecars                                                           |
+| `--silent`                     | —                      | Suppress output                                                                           |
+| `-h, --help` / `-v, --version` | —                      |                                                                                           |
 
 ## What it includes and skips
 
@@ -80,7 +80,56 @@ project, trigger a recompile, and run again.
 
 Fails when the manifest was out of date (it rewrites it, so the diff is right
 there) or when validation found an error: a catch-all that isn't the final
-segment, conflicting dynamic segment names at one level, or duplicates.
+segment, or two folders that resolve to the same URL path.
+
+### Two folders, one path
+
+Route groups add no path segment, so `(marketing)/about` and `(app)/about` both
+serve `/about`. Next refuses to build that, and the error names the folders:
+
+```
+✗ 2 folders resolve to "/about" ((app)/about, (marketing)/about) — Next cannot
+  build two pages at the same path
+```
+
+This is an error, not a warning: the app already cannot build, and finding out
+from `--check` is faster than finding out from `next build`.
+
+### Warnings that do not fail the build
+
+`--check` also reports two things without changing the exit code:
+
+**Unreachable routes.** A pattern a more specific sibling shadows at every depth
+it could serve, so no URL reaches it. The page file exists, so nothing else
+catches this:
+
+```
+⚠ 1 route unreachable by any URL that this manifest models:
+    /docs/[...slug] — "/__nsr0/__nsr1" resolves to /docs/[a]/[b]
+  Rewrites in next.config and middleware are NOT modeled, so a route
+  reached only through a rewrite will appear here. Check before deleting.
+```
+
+**A route set Next itself rejects.** `--check` asks Next's own route sorter
+whether it would accept the set, so a `next build` failure surfaces in seconds
+instead of minutes:
+
+```
+✗ Next rejects this route set, so "next build" will fail:
+    You cannot use different slug names for the same dynamic path ('id' !== 'slug').
+```
+
+That probe reads an internal Next module resolved from your project. If it
+cannot be loaded, `--check` says so in one line and carries on:
+
+```
+  (skipped Next's own route validation — next/dist/shared/lib/router/utils/sorted-routes not loadable here)
+```
+
+Neither warning affects the exit code. Unreachable detection has not been
+validated against apps that rewrite, so failing a build on it would be a
+promise this cannot keep yet. Use `findUnreachableRoutes` directly if you want
+to gate on it in your own check.
 
 ## Watch mode
 

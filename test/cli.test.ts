@@ -31,6 +31,115 @@ function writeFixture(tree: Record<string, string>): string {
   return appDir;
 }
 
+describe("duplicate route paths", () => {
+  /**
+   * Route groups add no path segment, so two of them can serve one URL. Next
+   * refuses to build that. The manifest used to dedupe before validating, so
+   * `--check` could never see it — the whole point of these tests.
+   */
+  it("BUG-11: reports two route groups that resolve to the same path", () => {
+    const appDir = writeFixture({
+      "(marketing)/about/page.tsx": "",
+      "(app)/about/page.tsx": "",
+    });
+
+    const result = generateRoutes({
+      appDir,
+      out: path.join(appDir, "..", "routes.json"),
+      log: false,
+    });
+
+    // Still one entry in the manifest — the URL space really does have one.
+    expect(result.routes).toEqual(["/", "/about"]);
+
+    const duplicate = result.conflicts.find((c) => c.kind === "duplicate");
+    expect(duplicate).toBeTruthy();
+    expect(duplicate!.level).toBe("error");
+    expect(duplicate!.routes).toEqual(["/about"]);
+    // Naming both folders is what makes it actionable.
+    expect(duplicate!.message).toContain("(app)");
+    expect(duplicate!.message).toContain("(marketing)");
+  });
+
+  it("BUG-11: catches a root page colliding with a grouped root page", () => {
+    // `walk` never inspects the app directory itself, so this one is only
+    // caught because collectRoutes records the root explicitly.
+    const appDir = writeFixture({
+      "page.tsx": "",
+      "(shop)/page.tsx": "",
+    });
+
+    const result = generateRoutes({
+      appDir,
+      out: path.join(appDir, "..", "routes.json"),
+      log: false,
+    });
+
+    const duplicate = result.conflicts.find((c) => c.kind === "duplicate");
+    expect(duplicate?.level).toBe("error");
+    expect(duplicate?.routes).toEqual(["/"]);
+  });
+
+  it("BUG-11: a lone root page is not a duplicate of the injected root", () => {
+    // "/" is always added to the manifest whether or not app/page.tsx exists.
+    // That injection must never be mistaken for a second source.
+    const appDir = writeFixture({ "page.tsx": "", "about/page.tsx": "" });
+
+    const result = generateRoutes({
+      appDir,
+      out: path.join(appDir, "..", "routes.json"),
+      log: false,
+    });
+
+    expect(result.conflicts).toEqual([]);
+  });
+
+  it("BUG-11: an app with no root page is still not a duplicate", () => {
+    const appDir = writeFixture({ "about/page.tsx": "" });
+
+    const result = generateRoutes({
+      appDir,
+      out: path.join(appDir, "..", "routes.json"),
+      log: false,
+    });
+
+    expect(result.routes).toContain("/");
+    expect(result.conflicts).toEqual([]);
+  });
+
+  it("BUG-11: records the folder behind every route", () => {
+    const appDir = writeFixture({
+      "page.tsx": "",
+      "(marketing)/about/page.tsx": "",
+      "w/[id]/page.tsx": "",
+    });
+
+    const { sources } = collectRoutes(appDir);
+
+    expect([...sources.keys()].sort()).toEqual(["/", "/about", "/w/[id]"]);
+    expect(sources.get("/about")).toHaveLength(1);
+    expect(sources.get("/about")![0]).toContain("about");
+  });
+
+  it("BUG-11: skipped folders cannot create a phantom duplicate", () => {
+    // Parallel slots and intercepting routes contribute no route, so they must
+    // not register a source either.
+    const appDir = writeFixture({
+      "feed/page.tsx": "",
+      "feed/@modal/page.tsx": "",
+      "feed/(..)photo/page.tsx": "",
+    });
+
+    const result = generateRoutes({
+      appDir,
+      out: path.join(appDir, "..", "routes.json"),
+      log: false,
+    });
+
+    expect(result.conflicts).toEqual([]);
+  });
+});
+
 describe("collectRoutes", () => {
   it("honours every app-directory convention", () => {
     const appDir = writeFixture({
