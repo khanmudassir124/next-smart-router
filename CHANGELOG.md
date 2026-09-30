@@ -1,5 +1,123 @@
 # Changelog
 
+## 1.2.0
+
+### Minor Changes
+
+- 191771b: Find routes no URL can reach, and explain how a URL resolved.
+
+  `findUnreachableRoutes(routes)` reports patterns that a more specific sibling
+  shadows at every depth they could serve. The page file exists, so nothing else
+  catches this — not Next, and not a folder tree. Each result carries the witness
+  URLs that were tried and what beat them, so it is a proof rather than an
+  accusation. Validated at zero false positives across 18,000+ route sets that
+  Next's own sorter accepts, checked against exhaustive search.
+
+  `generate --check` now surfaces it as a warning, alongside a second one: whether
+  Next itself would reject your route set, so a `next build` failure shows up in
+  seconds instead of minutes. Neither warning changes the exit code.
+
+  `explainIn(state, href)` answers why a URL resolved the way it did — the winner
+  and its rank, everything that also matched and lost, and the reason each of the
+  rest was rejected. `<SmartRouterDevtools>` now runs on it instead of computing
+  near misses itself.
+
+  `generate --check` also now catches **two folders that resolve to the same URL
+  path** — `(marketing)/about` beside `(app)/about`, or `app/page.tsx` beside
+  `app/(shop)/page.tsx`. Next refuses to build those, but the manifest deduped the
+  pair before anything could look, so `--check` could never see it. The error names
+  both folders. `collectRoutes` gains a `sources` map (route → the folders that
+  produced it) to make this possible; that is an additive field.
+
+  This is the one behaviour change that can newly fail a build that used to pass
+  `--check`. Any app it fires on was already failing `next build`, so it moves the
+  failure earlier rather than creating one.
+
+  Also:
+
+  - The devtools rank is labelled `nsr rank`. It is this library's specificity
+    order, which differs from Next's trie ordering in position (never in which
+    route wins), and the label stops it being read as a claim about the framework.
+  - Unknown CLI flags are now an error. `--app-dr` used to silently fall through
+    to the default app directory and report success.
+  - Fixed the `searchParams` examples in the README and recipes: Next 15 makes it
+    a Promise, so it needs `parse(await searchParams)`.
+
+### Patch Changes
+
+- dc76e64: Fixes to the React layer:
+
+  - **`basePath` apps:** `nav.fsBack()` and `nav.up()` navigated to
+    `/app/app/...`, because they handed `router.push` a path that already had
+    `basePath`. Shallow query writes (`useQueryState` with `shallow`, and
+    `nav.setQuery`) dropped `basePath` from the address bar. Both fixed.
+  - **`useQueryState` / `useQueryStates`:**
+    - A write still pending when the component unmounted was discarded. It now
+      lands while the user is still on that page, and is dropped if they have
+      navigated away.
+    - Two setter calls in one tick now build on each other: `set(c => c + 1)`
+      twice gives 2, and `set(5)` then `set(1)` ends on 1.
+  - **`<SmartLink>`:**
+    - `target="_blank"` and `download` clicks are left to the browser, as
+      `next/link` does. With a navigation guard registered, they used to
+      navigate the current tab.
+    - `matchQuery` now compares against the current search, so it can actually
+      match.
+    - Sticky params no longer go stale after a query change. This also removes
+      a hydration mismatch.
+  - **`useNavigationGuard`:** with `interceptBrowserBack`, an inline `confirm`
+    pushed a history entry on every render. It now installs once for each time
+    `when` turns true.
+
+- 358df58: Outputs now keep the user's locale, and treat `basePath` consistently:
+
+  - **Locales:** `fsBackPathSafe`, `getNearestStaticRoute`, breadcrumb hrefs,
+    `nav.fsBack()`, `nav.up()` and `nav.root()` stripped the locale prefix and
+    never put it back. `/fr/w/42/members` went back to `/w/42`, out of the
+    user's locale. They now keep it, as the FAQ always said. Breadcrumb `labels`
+    can still be keyed by the bare href.
+  - **`basePath` text in a route:** with basePath `/docs`, `buildHref("/docs/[slug]")`
+    returned `/docs/intro` because it mistook the route for an already-prefixed
+    path. It now returns `/docs/docs/intro`. `applyBasePath` itself stays
+    idempotent, as documented.
+  - **`trailingSlash`:** `fsBackPathSafe` and `getNearestStaticRoute` now apply
+    `trailingSlash`, as `createRouter`'s versions already did.
+  - **Which outputs carry `basePath`:** URL paths (`buildHref`, `fsBackPathSafe`,
+    `getNearestStaticRoute`) include it. Navigation hrefs (breadcrumbs, `nav.*`)
+    don't, because `<Link>` and `router.push` add it. That split was already the
+    behaviour; it is now documented in Concepts → Normalization and pinned by
+    tests. `createRouter` now shares one implementation of `fsBack`,
+    `nearestStatic` and `breadcrumbs` with the global functions, so the two
+    can't drift apart again.
+
+- 6c29577: Sticky query params no longer drop repeated keys on the target. Carrying
+  `locale` onto `../members?tag=a&tag=b` used to produce `?locale=fr&tag=b`;
+  it now keeps both `tag` values. Fixed in `nav.push`, `<SmartLink>` and
+  `createRouter().withSticky`, which now share one implementation.
+
+  `generate --check` now fails on a folder holding both a page and a route
+  handler (`settings/page.tsx` beside `settings/route.ts`). Next refuses to build
+  that; the generator used to drop the route from the manifest without a word.
+  `collectRoutes` gains an additive `clashes` field listing those folders.
+
+- 5574865: Route matching is about 15× faster on large apps: 168 µs → 11 µs per match at
+  500 routes. Middleware calls it on every request, and `fsBack` and breadcrumbs
+  call it once per path segment. An exact static match is now a single lookup,
+  and dynamic routes whose depth can't fit the path are skipped before they're
+  walked. Results are unchanged, and a seeded test holds the new matcher to the
+  old linear walk across 24,000 cases.
+- 746f518: Core fixes:
+
+  - `resolvePath(current, "#top")` keeps the current query, as a browser does. It
+    used to drop it, so clicking an in-page anchor reset the filters.
+  - `createRouter().isActive` now honours `matchQuery`. It had its own copy of
+    the logic that ignored the option. Both versions also ignore a `#hash` when
+    comparing queries now, and accept a pattern target that carries a query
+    (`"/w/[id]?tab=a"`).
+  - `defineSearchParams().href(path, values)` merges onto a query already in
+    `path` and keeps its hash, instead of producing `/w?x=1?page=2`. It also
+    works when destructured.
+
 ## 1.0.0
 
 A rewrite of the internals around one change — the route registry now
