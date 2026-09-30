@@ -13,13 +13,23 @@ concurrency:
 
 jobs:
   verify:
-    name: node ${{ matrix.node }} · next ${{ matrix.next }}
+    name: node ${{ matrix.node }} · next ${{ matrix.next }} · react ${{ matrix.react }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         node: [18, 20, 22]
-        next: ["13.5", "14", "15"]
+        next: ["13.5", "14", "15", "16"]
+        # Each Next major is tested against the React its App Router ships with;
+        # installing next@15 alone left it running on this repo's React 18.
+        include:
+          - { next: "13.5", react: "18" }
+          - { next: "14", react: "18" }
+          - { next: "15", react: "19" }
+          - { next: "16", react: "19" }
+        exclude:
+          # Next 16 requires Node >= 20.9.
+          - { node: 18, next: "16" }
     steps:
       - uses: actions/checkout@v4
 
@@ -31,8 +41,12 @@ jobs:
       - run: npm ci
 
       # peerDependencies claims next >=13.0.0 — this is what makes that true.
-      - name: Install the Next.js under test
-        run: npm install --no-save --legacy-peer-deps next@${{ matrix.next }}
+      - name: Install the Next.js and React under test
+        run: >-
+          npm install --no-save --legacy-peer-deps
+          next@${{ matrix.next }}
+          react@${{ matrix.react }}
+          react-dom@${{ matrix.react }}
 
       - run: npm run typecheck
       - run: npm test
