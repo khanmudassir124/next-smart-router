@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { getConfig } from "../core/config";
 import { emitNavigation, runGuards, type NavigationType } from "../core/events";
-import { fsBackPathSafe } from "../core/fs-back";
+import { fsBackPath } from "../core/fs-back";
 import { resolvePath } from "../core/resolve-path";
 import { routeExists } from "../core/route-matcher";
 import { carryQuery, selectQuery, withQuery, type QueryInput } from "../core/url";
@@ -207,7 +207,8 @@ export function useSmartRouter(): SmartRouter {
 
   const up = useCallback(
     (levels = 1, options?: NavigateOptions) => {
-      const href = fsBackPathSafe(pathnameRef.current, { levels });
+      // Without basePath: router.push adds it.
+      const href = fsBackPath(pathnameRef.current, { levels });
       navigate("fsBack", href, options);
     },
     [navigate]

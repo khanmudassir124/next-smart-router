@@ -3,6 +3,9 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { getConfig } from "../core/config";
+import { splitUrl } from "../core/url";
+
 /**
  * Event dispatched after a shallow (History API) URL update, so hooks reading
  * `window.location.search` re-render. `popstate` alone is not enough —
@@ -41,8 +44,19 @@ export function notifyLocationChange(): void {
 export function applyShallowUrl(url: string, mode: "push" | "replace"): void {
   if (typeof window === "undefined") return;
 
-  if (mode === "push") window.history.pushState(window.history.state, "", url);
-  else window.history.replaceState(window.history.state, "", url);
+  // Callers pass Next-relative hrefs (built from usePathname), as router.push
+  // takes them. Next adds basePath on its own navigations; the raw History API
+  // doesn't, so it is added here. Unconditionally, unlike applyBasePath: a
+  // route may itself start with the basePath's text.
+  const base = (getConfig().basePath ?? "").replace(/\/$/, "");
+  let target = url;
+  if (base && url.startsWith("/")) {
+    const { path, query, hash } = splitUrl(url);
+    target = base + (path === "/" ? "" : path) + query + hash;
+  }
+
+  if (mode === "push") window.history.pushState(window.history.state, "", target);
+  else window.history.replaceState(window.history.state, "", target);
 
   notifyLocationChange();
 }

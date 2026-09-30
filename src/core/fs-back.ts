@@ -20,7 +20,15 @@ export interface FsBackOptions {
  */
 export function fsBackPathSafe(pathname: string, options: FsBackOptions = {}): string {
   warnIfUninitialized("fsBackPathSafe");
+  return applyBasePath(fsBackPath(pathname, options), getRouteState().config.basePath);
+}
 
+/**
+ * {@link fsBackPathSafe} without `basePath` — the form `router.push` takes.
+ * Next prefixes `basePath` itself, so handing it the public result would
+ * navigate to `/app/app/...`.
+ */
+export function fsBackPath(pathname: string, options: FsBackOptions = {}): string {
   const state = getRouteState();
   const parts = toSegments(normalizePath(pathname, state.config));
   const levels = Math.max(1, options.levels ?? 1);
@@ -43,5 +51,5 @@ export function fsBackPathSafe(pathname: string, options: FsBackOptions = {}): s
       ? buildQuery(selectQuery(pathname, state.config.stickyQuery))
       : "";
 
-  return applyBasePath(result + sticky, state.config.basePath);
+  return result + sticky;
 }
