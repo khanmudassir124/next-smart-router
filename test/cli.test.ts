@@ -177,6 +177,34 @@ describe("collectRoutes", () => {
     expect(collectRoutes(appDir).routes).toEqual(["/"]);
   });
 
+  it("reports a folder holding both a page and a route handler", () => {
+    const appDir = writeFixture({
+      "settings/page.tsx": "",
+      "settings/route.ts": "",
+      "about/page.tsx": "",
+    });
+
+    const result = generateRoutes({
+      appDir,
+      out: path.join(appDir, "..", "routes.json"),
+      log: false,
+    });
+
+    // Next cannot build it, so it stays out of the manifest...
+    expect(result.routes).toEqual(["/", "/about"]);
+
+    // ...but no longer silently.
+    const clash = result.conflicts.find((c) => c.routes.includes("/settings"));
+    expect(clash?.level).toBe("error");
+    expect(clash?.message).toContain("page and a route handler");
+  });
+
+  it("reports a page and a route handler side by side at the app root", () => {
+    const appDir = writeFixture({ "page.tsx": "", "route.ts": "" });
+    const { clashes } = collectRoutes(appDir);
+    expect(clashes.map((c) => c.route)).toEqual(["/"]);
+  });
+
   it("BUG-10: skips every intercepting-route spelling", () => {
     const appDir = writeFixture({
       "feed/(.)photo/page.tsx": "",

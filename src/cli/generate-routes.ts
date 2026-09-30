@@ -70,10 +70,12 @@ interface WalkContext {
   ignore: Set<string>;
   emitMeta: boolean;
   meta: RouteMetaMap;
+  /** Folders holding both a page and a route handler. */
+  clashes: FoundRoute[];
 }
 
 /** A route, and the folder that produced it. */
-interface FoundRoute {
+export interface FoundRoute {
   route: string;
   dir: string;
 }
@@ -102,9 +104,14 @@ function walk(dir: string, base: string, ctx: WalkContext): FoundRoute[] {
     const segment = isGroup ? "" : name;
     const route = segment ? `${base}/${segment}` : base;
 
-    // A page wins over a route handler at the same path; a folder holding only
-    // `route.ts` is an API endpoint, not a page.
-    if (hasPage(full, ctx.pageFiles) && !isRouteHandler(full)) {
+    // A folder holding only `route.ts` is an API endpoint, not a page. One
+    // holding both is a Next build error; it stays out of the manifest and is
+    // recorded so `generateRoutes` can report it.
+    const page = hasPage(full, ctx.pageFiles);
+    const handler = isRouteHandler(full);
+    if (page && handler) ctx.clashes.push({ route: route || "/", dir: full });
+
+    if (page && !handler) {
       const routePath = route || "/";
       routes.push({ route: routePath, dir: full });
 
@@ -131,7 +138,12 @@ function walk(dir: string, base: string, ctx: WalkContext): FoundRoute[] {
 export function collectRoutes(
   appDir: string,
   options: Pick<GenerateRoutesOptions, "pageExtensions" | "emitMeta" | "ignore"> = {}
-): { routes: string[]; meta: RouteMetaMap; sources: Map<string, string[]> } {
+): {
+  routes: string[];
+  meta: RouteMetaMap;
+  sources: Map<string, string[]>;
+  clashes: FoundRoute[];
+} {
   if (!fs.existsSync(appDir)) {
     throw new Error(`next-smart-router: app directory not found at "${appDir}"`);
   }
@@ -141,6 +153,7 @@ export function collectRoutes(
     ignore: new Set(options.ignore ?? []),
     emitMeta: options.emitMeta ?? true,
     meta: {},
+    clashes: [],
   };
 
   const found = walk(appDir, "", ctx);
@@ -148,7 +161,10 @@ export function collectRoutes(
   // `walk` only ever inspects SUBdirectories, so a real `app/page.tsx` is
   // invisible to it — the root is injected below instead. Record it here so a
   // root collision (`app/page.tsx` beside `app/(shop)/page.tsx`) is still seen.
-  if (hasPage(appDir, ctx.pageFiles) && !isRouteHandler(appDir)) {
+  const rootPage = hasPage(appDir, ctx.pageFiles);
+  const rootHandler = isRouteHandler(appDir);
+  if (rootPage && rootHandler) ctx.clashes.unshift({ route: "/", dir: appDir });
+  if (rootPage && !rootHandler) {
     found.unshift({ route: "/", dir: appDir });
   }
 
@@ -163,7 +179,7 @@ export function collectRoutes(
     compareSpecificity
   );
 
-  return { routes, meta: ctx.meta, sources };
+  return { routes, meta: ctx.meta, sources, clashes: ctx.clashes };
 }
 
 /**
@@ -207,6 +223,25 @@ function duplicatePathConflicts(
   }
 
   return conflicts;
+}
+
+/**
+ * Folders holding both a page and a route handler. Next refuses to build them
+ * ("Conflicting route and page at ..."). The route is already left out of the
+ * manifest; this makes `--check` say why instead of dropping it silently.
+ *
+ * Reported under `duplicate` for the same reason as the collisions above: the
+ * `kind` union is public.
+ */
+function pageHandlerConflicts(clashes: FoundRoute[], appDir: string): RouteConflict[] {
+  return clashes.map(({ route, dir }) => ({
+    level: "error",
+    kind: "duplicate",
+    message:
+      `"${route}" (${path.relative(appDir, dir) || "."}) has both a page and a ` +
+      `route handler — Next cannot build a page and a route.ts at the same path`,
+    routes: [route],
+  }));
 }
 
 function serializeTs(
@@ -265,10 +300,11 @@ export function generateRoutes(options: GenerateRoutesOptions = {}): GenerateRes
   const appDir = options.appDir ?? path.join(process.cwd(), "app");
   const out = options.out ?? path.join(process.cwd(), "route-manifest.ts");
 
-  const { routes, meta, sources } = collectRoutes(appDir, options);
+  const { routes, meta, sources, clashes } = collectRoutes(appDir, options);
   const conflicts = [
     ...validateRoutes(routes),
     ...duplicatePathConflicts(sources, appDir),
+    ...pageHandlerConflicts(clashes, appDir),
   ];
   const next = serialize(routes, meta, out, options);
 

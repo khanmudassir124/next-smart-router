@@ -80,7 +80,8 @@ project, trigger a recompile, and run again.
 
 Fails when the manifest was out of date (it rewrites it, so the diff is right
 there) or when validation found an error: a catch-all that isn't the final
-segment, or two folders that resolve to the same URL path.
+segment, two folders that resolve to the same URL path, or a page and a route
+handler in the same folder.
 
 ### Two folders, one path
 
@@ -94,6 +95,19 @@ serve `/about`. Next refuses to build that, and the error names the folders:
 
 This is an error, not a warning: the app already cannot build, and finding out
 from `--check` is faster than finding out from `next build`.
+
+### A page and a route handler in one folder
+
+A folder holding both `page.tsx` and `route.ts` is also a Next build error. The
+route is left out of the manifest, and `--check` fails naming the folder:
+
+```
+✗ "/settings" (settings) has both a page and a route handler — Next cannot
+  build a page and a route.ts at the same path
+```
+
+A folder holding only `route.ts` is an API endpoint, not a page, and is skipped
+without comment.
 
 ### Warnings that do not fail the build
 
@@ -187,7 +201,10 @@ result.conflicts; // validation findings
 It returns `GenerateResult`: `{ routes, meta, conflicts, changed, out }`.
 
 `collectRoutes(appDir, options)` accepts the `pageExtensions`, `emitMeta` and
-`ignore` subset and returns `{ routes, meta }` without writing anything.
+`ignore` subset and returns `{ routes, meta, sources, clashes }` without writing
+anything. `sources` maps each route to the folders that produced it; `clashes`
+lists the folders holding both a page and a route handler, as `FoundRoute`
+(`{ route, dir }`) entries.
 
 ### `watchRoutes(options)`
 
