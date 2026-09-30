@@ -9,6 +9,8 @@
  *     produce, so a round-trip through the URL is lossless.
  */
 
+import { withQuery } from "./url";
+
 export interface ParserOptions {
   /** "replace" (default) or "push" — whether the update adds a history entry. */
   history?: "replace" | "push";
@@ -294,6 +296,31 @@ function readRaw(
 export function defineSearchParams<M extends ParserMap>(
   parsers: M
 ): SearchParamsDefinition<M> {
+  /**
+   * Each declared key as its serialized string, or `undefined` when it should
+   * be absent: unset, null, or its default under `clearOnDefault`.
+   */
+  const toQuery = (values: Partial<InferParserMap<M>>) => {
+    const out: Record<string, string | undefined> = {};
+
+    for (const key of Object.keys(parsers).sort()) {
+      const parser = parsers[key];
+      const value = (values as any)[key];
+      if (value === undefined || value === null) {
+        out[key] = undefined;
+        continue;
+      }
+
+      const isDefault =
+        parser.defaultValue !== undefined && parser.eq(value, parser.defaultValue);
+      out[key] =
+        isDefault && parser.options.clearOnDefault
+          ? undefined
+          : parser.serialize(value);
+    }
+    return out;
+  };
+
   return {
     parsers,
 
@@ -312,25 +339,18 @@ export function defineSearchParams<M extends ParserMap>(
 
     serialize(values) {
       const params = new URLSearchParams();
-
-      for (const key of Object.keys(parsers).sort()) {
-        const parser = parsers[key];
-        const value = (values as any)[key];
-        if (value === undefined || value === null) continue;
-
-        const isDefault =
-          parser.defaultValue !== undefined && parser.eq(value, parser.defaultValue);
-        if (isDefault && parser.options.clearOnDefault) continue;
-
-        params.set(key, parser.serialize(value));
+      for (const [key, value] of Object.entries(toQuery(values))) {
+        if (value !== undefined) params.set(key, value);
       }
 
       const serialized = params.toString();
       return serialized ? `?${serialized}` : "";
     },
 
+    // Merged onto whatever query `path` already has, before its hash, and
+    // written without `this` so it survives being destructured.
     href(path, values) {
-      return path + this.serialize(values);
+      return withQuery(path, toQuery(values));
     },
   };
 }

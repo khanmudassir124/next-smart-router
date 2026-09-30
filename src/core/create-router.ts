@@ -33,7 +33,7 @@ import { resolvePath } from "./resolve-path";
 import { buildHref, type BuildHrefOptions } from "./build-href";
 import type { BuildParamsOf, ParamsOf, Route } from "./typed-routes";
 import type { Breadcrumb, BreadcrumbOptions } from "./breadcrumbs";
-import type { IsActiveOptions } from "./is-active";
+import { isActiveIn, type IsActiveOptions } from "./is-active";
 
 export interface SmartRouterInstance {
   /** The underlying, pre-sorted route state. */
@@ -224,32 +224,6 @@ function buildBreadcrumbs(
 
   if (crumbs.length) crumbs[crumbs.length - 1].isCurrent = true;
   return crumbs;
-}
-
-function isActiveIn(
-  state: RouteState,
-  pathname: string,
-  target: string,
-  options: IsActiveOptions
-): boolean {
-  const current = normalizePath(pathname, state.config);
-
-  if (target.includes("[")) {
-    if (matchPatternParams(current, target) !== null) return true;
-    if (options.exact) return false;
-
-    const segs = toSegments(current);
-    for (let i = segs.length - 1; i > 0; i--) {
-      const ancestor = "/" + segs.slice(0, i).join("/");
-      if (matchPatternParams(ancestor, target) !== null) return true;
-    }
-    return false;
-  }
-
-  const href = normalizePath(target, state.config);
-  if (current === href) return true;
-  if (options.exact) return false;
-  return href === "/" ? false : current.startsWith(href + "/");
 }
 
 /* -------------------------------------------------

@@ -22,6 +22,7 @@ import {
   parseQuery,
   pickQuery,
   resetSmartRouter,
+  resolvePath,
   selectQuery,
   splitUrl,
   withQuery,
@@ -232,5 +233,25 @@ describe("defineSearchParams", () => {
     expect(search.serialize({ tab: "members", page: 1 })).toBe("?tab=members");
     expect(search.serialize({ tab: "members", page: 3 })).toBe("?page=3&tab=members");
     expect(search.href("/w/42", { tab: "members" })).toBe("/w/42?tab=members");
+  });
+});
+
+describe("review regressions", () => {
+  it("a hash-only target keeps the current query, as a browser does", () => {
+    expect(resolvePath("/a/b?q=1", "#top")).toBe("/a/b?q=1#top");
+    // A query-only target still replaces the query.
+    expect(resolvePath("/a/b?q=1", "?x=2")).toBe("/a/b?x=2");
+  });
+
+  it("defineSearchParams().href merges onto an existing query and keeps the hash", () => {
+    const search = defineSearchParams({ page: parseAsInt.default(1) });
+
+    expect(search.href("/w?x=1", { page: 2 })).toBe("/w?page=2&x=1");
+    expect(search.href("/w#top", { page: 2 })).toBe("/w?page=2#top");
+  });
+
+  it("defineSearchParams().href survives being destructured", () => {
+    const { href } = defineSearchParams({ page: parseAsInt.default(1) });
+    expect(href("/w", { page: 3 })).toBe("/w?page=3");
   });
 });
